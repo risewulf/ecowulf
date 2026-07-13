@@ -1,15 +1,8 @@
 MIT License
 
-EcoWulf is a rebranded, self-hosted version of "Eco Gnome", maintained by the
-"À la bonne heure !" community. All credit for the original tool and its price
-calculation engine goes to the Eco Gnome authors.
-
-Original work:
-  Copyright (c) Eco-Gnome contributors — Zangdar and Joridan
-  https://github.com/Eco-Gnome/eco-gnome-website
-
-Modifications (branding, legal pages, self-hosting, theme):
-  Copyright (c) 2026 EcoWulf — "À la bonne heure !" community
+Copyright (c) Eco-Gnome contributors — Zangdar and Joridan (original work,
+https://github.com/Eco-Gnome/eco-gnome-website)
+Copyright (c) 2026 EcoWulf — "À la bonne heure !" community (modifications)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
