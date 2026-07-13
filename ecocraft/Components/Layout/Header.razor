@@ -1,0 +1,224 @@
+﻿@implements IDisposable
+@using ecocraft.Components.Dialog
+@using ecocraft.Models
+@using ecocraft.Services
+@using Microsoft.AspNetCore.Components.Routing
+@inject ContextService ContextService
+@inject IDialogService DialogService
+@inject LocalStorageService LocalStorageService
+@inject LocalizationService LocalizationService
+@inject NavigationManager NavManager
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.FlexStart" Class="pl-3">
+    <MudImage Src="/ecowulf-logo.svg" Width="52"/>
+    <MudText Typo="Typo.h5">@LocalizationService.GetTranslation("Header.EcoGnome")</MudText>
+    <MudLink Style="position: relative;" Color="Color.Tertiary" OnClick="() => OpenReleaseDialog()">
+        <MudText Color="Color.Tertiary" Class="mt-2 ml-n1">@ReleaseVersionService.ReleaseVersions.First().Title</MudText>
+        @if (_lastAcknowledgeVersion != ReleaseVersionService.ReleaseVersions.First().Date && _lastAcknowledgeVersion is not null)
+        {
+            <MudText Color="Color.Warning"
+                     Style="position: absolute; top: -10px; left: 5px; transform: rotate(-15deg)">@LocalizationService.GetTranslation("Header.New")</MudText>
+        }
+    </MudLink>
+
+    @if (!IsLoadingUserAndServer)
+    {
+        <MudSelect T="Server"
+                   Class="select-dense server-select"
+                   Value="@ContextService.CurrentServer"
+                   Style="min-width:200px;padding-left:10px"
+                   Label="@LocalizationService.GetTranslation("Header.MyServers")"
+                   Dense="false"
+                   Underline="false"
+                   Variant="Variant.Outlined"
+                   SelectedValuesChanged="OnSelectedServerChanged"
+                   ToStringFunc="server => server?.Name"
+                   AnchorOrigin="Origin.BottomLeft"
+                   TransformOrigin="Origin.TopLeft">
+            @foreach (var server in ContextService.AvailableServers)
+            {
+                <MudSelectItem T="Server" Value="@server">@server.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTooltip Text="@LocalizationService.GetTranslation("Header.AddServer")">
+            <MudIconButton id="onboarding-servers"
+                           Icon="@MDIIcons.Outline.PlusCircle"
+                           Size="Size.Medium"
+                           aria-label="@LocalizationService.GetTranslation("Header.CreateServer")"
+                           Color="Color.Tertiary"
+                           OnClick="OpenServerDialog"/>
+        </MudTooltip>
+    }
+</MudStack>
+
+@if (EnvironmentLabel == "LOCAL" || EnvironmentLabel == "DEV")
+{
+    <MudSpacer/>
+
+    <MudStack Spacing="0" AlignItems="AlignItems.Center">
+        <MudStack Row Spacing="2">
+            <MudIcon Size="Size.Small" Icon="@MDIIcons.Filled.Alert" Color="Color.Warning"/>
+            <MudText Color="Color.Warning">
+                @LocalizationService.GetTranslation("DevVersion")
+            </MudText>
+            <MudIcon Size="Size.Small" Icon="@MDIIcons.Filled.Alert" Color="Color.Warning"/>
+        </MudStack>
+        <MudStack Row Spacing="2">
+            <MudIcon Size="Size.Small" Icon="@MDIIcons.Filled.ArrowRight" Color="Color.Primary"/>
+            <MudLink Href="https://eco-gnome.com" Target="_blank">https://eco-gnome.com</MudLink>
+        </MudStack>
+    </MudStack>
+}
+
+<MudSpacer/>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.FlexEnd">
+    @if (!IsLoadingUserAndServer)
+    {
+        @* Bouton d'aide d'onboarding — visible seulement sur le price calculator et dès qu'au moins un métier est ajouté. *@
+        @if (IsOnCalculator && SkillCount >= 1)
+        {
+            <MudTooltip Text="@LocalizationService.GetTranslation("Onboarding.Help.Tooltip")">
+                <MudIconButton Icon="@Icons.Material.Filled.HelpOutline"
+                               Color="Color.Tertiary"
+                               Size="Size.Large"
+                               Class="@(_helpPulse ? "onboarding-help-pulse" : "")"
+                               aria-label="@LocalizationService.GetTranslation("Onboarding.Help.Tooltip")"
+                               OnClick="OpenHelpOverlay"/>
+            </MudTooltip>
+        }
+
+        <MudButton id="onboarding-profile" Variant="Variant.Filled" Style="max-width:300px;padding:10px 22px" StartIcon="@Icons.Material.Filled.AccountCircle" IconColor="Color.Tertiary"
+                   Size="Size.Large" OnClick="ConfigureUser">@ContextService.CurrentUser?.Pseudo</MudButton>
+
+        <MudSelect T="LanguageCode"
+                   Class="select-dense"
+                   Value="@LocalizationService.CurrentLanguageCode"
+                   Dense="false"
+                   Variant="Variant.Outlined"
+                   SelectedValuesChanged="OnSelectedLanguageChanged"
+                   AnchorOrigin="Origin.BottomLeft"
+                   TransformOrigin="Origin.TopLeft">
+            @foreach (var supportedLanguages in LocalizedField.SupportedLanguageToCode)
+            {
+                <MudSelectItem T="LanguageCode" Value="@supportedLanguages.Value">@supportedLanguages.Key</MudSelectItem>
+            }
+        </MudSelect>
+    }
+</MudStack>
+
+@code {
+    [Parameter]
+    public bool IsLoadingUserAndServer { get; set; }
+
+    [Parameter]
+    public bool IsDarkMode { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsDarkModeChanged { get; set; }
+
+    private string? _lastAcknowledgeVersion;
+    private string EnvironmentLabel;
+
+    private bool _helpPulse;
+    private const string HelpPulseSeenKey = "Onboarding.HelpPulseSeen";
+
+    // Nombre de métiers du DataContext courant (exposé par le PriceCalculator via ContextService).
+    private int SkillCount => ContextService.CurrentDataContext?.UserSkills.Count(us => us.Skill is not null) ?? 0;
+
+    // L'aide est centrée sur le price calculator : on ne montre le bouton que sur la route racine.
+    private bool IsOnCalculator => new Uri(NavManager.Uri).AbsolutePath == "/";
+
+    protected override void OnInitialized()
+    {
+        var uri = NavManager.Uri;
+
+        if (uri.Contains("localhost"))
+        {
+            EnvironmentLabel = "LOCAL";
+        }
+        else if (uri.Contains("dev.eco-gnome.com"))
+        {
+            EnvironmentLabel = "DEV";
+        }
+        else
+        {
+            EnvironmentLabel = "PROD";
+        }
+
+        ContextService.OnContextChanged += StateHasChanged;
+        ContextService.OnCurrentDataContextChanged += OnSkillContextChanged;
+        NavManager.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _lastAcknowledgeVersion = await LocalStorageService.GetItem("LastAcknowledgedVersion") ?? "";
+        }
+    }
+
+    public void Dispose()
+    {
+        ContextService.OnContextChanged -= StateHasChanged;
+        ContextService.OnCurrentDataContextChanged -= OnSkillContextChanged;
+        NavManager.LocationChanged -= OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => InvokeAsync(StateHasChanged);
+
+    // Déclenche le pulse one-shot du bouton d'aide la première fois que le joueur a au moins un métier.
+    private async void OnSkillContextChanged()
+    {
+        if (SkillCount >= 1 && !_helpPulse)
+        {
+            var seen = await LocalStorageService.GetItem(HelpPulseSeenKey);
+            if (seen != "True")
+            {
+                _helpPulse = true;
+                await LocalStorageService.AddItem(HelpPulseSeenKey, "True");
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OpenHelpOverlay()
+    {
+        _helpPulse = false;
+        ContextService.RequestHelpOverlay();
+    }
+
+    private async Task OnSelectedLanguageChanged(IEnumerable<LanguageCode> languageCodes)
+    {
+        await LocalizationService.SetLanguageAsync(languageCodes.First());
+        ContextService.InvokeContextChanged();
+    }
+
+    private async Task OnSelectedServerChanged(IEnumerable<Server> servers)
+    {
+        await ContextService.ChangeServer(servers.First());
+    }
+
+    private void OpenServerDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, NoHeader = false, CloseButton = true, FullWidth = true, MaxWidth = MaxWidth.Small };
+        DialogService.ShowAsync<ServerDialog>(LocalizationService.GetTranslation("Header.ServerDialog.Title"), options);
+    }
+
+    private async Task ConfigureUser()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, NoHeader = false, CloseButton = true, FullWidth = true, MaxWidth = MaxWidth.Medium };
+        await DialogService.ShowAsync<UserConfigurationDialog>(LocalizationService.GetTranslation("Header.UserConfigurationDialog.Title"), options);
+    }
+
+    private async Task OpenReleaseDialog()
+    {
+        _lastAcknowledgeVersion = ReleaseVersionService.ReleaseVersions.First().Date;
+        await LocalStorageService.AddItem("LastAcknowledgedVersion", _lastAcknowledgeVersion);
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth=true, MaxWidth = MaxWidth.Medium };
+        await DialogService.ShowAsync<ReleaseDialog>(LocalizationService.GetTranslation("Header.ReleaseDialog.Title"), options);
+    }
+}

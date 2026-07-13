@@ -1,0 +1,46 @@
+﻿@page "/contact"
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="my-6">
+    <MudPaper Class="pa-6 mb-4">
+        <MudText Typo="Typo.h4" GutterBottom="true">Contact & support</MudText>
+        <MudText Typo="Typo.body1" Class="mb-4">
+            Une question, un bug ou une idée pour EcoWulf ? On te répond sur Discord. 👇
+        </MudText>
+
+        <MudStack Spacing="3">
+            <MudPaper Outlined="true" Class="pa-4">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><b>Rejoindre le Discord</b></MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">Serveur « À la bonne heure ! »</MudText>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Forum"
+                           Href="https://discord.gg/UeHuqc2dR"
+                           Target="_blank">
+                    discord.gg/UeHuqc2dR
+                </MudButton>
+            </MudPaper>
+
+            <MudPaper Outlined="true" Class="pa-4">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true"><b>Me contacter directement</b></MudText>
+                <MudText Typo="Typo.body2">Sur Discord : <b>f6z2</b> &nbsp;(pseudo affiché « ! Risewulf »)</MudText>
+            </MudPaper>
+        </MudStack>
+    </MudPaper>
+
+    <MudPaper Class="pa-6">
+        <MudText Typo="Typo.h5" GutterBottom="true">Crédits</MudText>
+        <MudText Typo="Typo.body2" Class="mb-1">
+            EcoWulf est une version personnalisée de l'outil open-source <b>Eco Gnome</b>,
+            créé par <b>Zangdar</b> et <b>Joridan</b> (licence MIT). Merci à eux pour leur travail. 🙏
+        </MudText>
+        <MudText Typo="Typo.body2">
+            Code source :
+            <MudLink Href="https://github.com/Eco-Gnome/eco-gnome-website" Target="_blank">github.com/Eco-Gnome</MudLink>
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mt-3">
+            <MudLink Href="/legal">Mentions légales</MudLink> ·
+            <MudLink Href="/privacy">Confidentialité</MudLink> ·
+            <MudLink Href="/terms">Conditions</MudLink>
+        </MudText>
+    </MudPaper>
+</MudContainer>

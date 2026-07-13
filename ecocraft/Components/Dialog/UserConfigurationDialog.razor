@@ -1,0 +1,280 @@
+﻿@using ecocraft.Models
+@using ecocraft.Services
+@using ecocraft.Services.DbServices
+@using Microsoft.EntityFrameworkCore
+@inject ContextService ContextService
+@inject IJSRuntime JsRuntime
+@inject ISnackbar Snackbar
+@inject EcoCraftDbContext EcoCraftDbContext
+@inject UserDbService UserDbService
+@inject UserServerDbService UserServerDbService
+@inject LocalStorageService LocalStorageService
+@inject NavigationManager Navigation
+@inject LocalizationService LocalizationService
+@inject IDbContextFactory<EcoCraftDbContext> EcoCraftDbFactory
+
+<MudDialog>
+	<TitleContent>
+		<MudText Typo="Typo.h4" Align="Align.Center">@LocalizationService.GetTranslation("UserConfigurationDialog.UserSettings")</MudText>
+	</TitleContent>
+	<DialogContent>
+		<MudTextField Value="ContextService.CurrentUser!.Pseudo" Variant="Variant.Outlined" Label="Pseudo" ValueChanged="@((string pseudo) => OnUpdateUserName(pseudo))" />
+
+		<MudStack Row AlignItems="AlignItems.Center" Class="py-3">
+			<MudTextField Value="ContextService.CurrentUser!.Id"
+			              Variant="Variant.Outlined"
+			              Label="Id"
+			              ReadOnly
+			              Adornment="Adornment.End"
+			              AdornmentIcon="@Icons.Material.Outlined.ContentCopy"
+			              OnAdornmentClick="@(() => CopyToClipboard(ContextService.CurrentUser!.Id.ToString()))"
+			              AdornmentAriaLabel="@LocalizationService.GetTranslation("CopyToClipboard")" />
+			<MudTextField Value="ContextService.CurrentUser!.SecretId"
+			              Variant="Variant.Outlined"
+			              Label="@LocalizationService.GetTranslation("UserConfigurationDialog.SecretId")"
+			              ReadOnly
+			              Adornment="Adornment.End"
+			              InputType="InputType.Password"
+			              AdornmentIcon="@Icons.Material.Outlined.ContentCopy"
+			              OnAdornmentClick="@(() => CopyToClipboard(ContextService.CurrentUser!.SecretId.ToString()))"
+			              AdornmentAriaLabel="@LocalizationService.GetTranslation("CopyToClipboard")" />
+
+			<MudTooltip Text="@LocalizationService.GetTranslation("UserConfigurationDialog.ExportBackup")">
+				<MudIconButton Icon="@Icons.Material.Filled.Download"
+				               Variant="Variant.Filled"
+				               Color="Color.Primary"
+				               OnClick="@(() => ExportUser())" />
+			</MudTooltip>
+
+			<MudTooltip Text="@LocalizationService.GetTranslation("UserConfigurationDialog.ImportReplace")">
+				<MudFileUpload T="IBrowserFile" FilesChanged="ImportUser">
+					<CustomContent Context="fileUpload">
+						<MudIconButton Variant="Variant.Filled"
+						               Color="Color.Warning"
+						               Icon="@Icons.Material.Filled.CloudUpload"
+						               OnClick="@fileUpload.OpenFilePickerAsync" />
+					</CustomContent>
+					<SelectedTemplate>
+					</SelectedTemplate>
+				</MudFileUpload>
+			</MudTooltip>
+		</MudStack>
+		<MudText Typo="Typo.h5" Class="mt-3 pa-1">@LocalizationService.GetTranslation("UserConfigurationDialog.MyServers")</MudText>
+		<MudTable Items="ContextService.CurrentUser!.UserServers" Dense="true" Class="mb-6 mt-3">
+			<HeaderContent>
+				<MudTh>
+					<MudText>@LocalizationService.GetTranslation("Name")</MudText>
+				</MudTh>
+				<MudTh>
+					<MudText>@LocalizationService.GetTranslation("JoinCode")</MudText>
+				</MudTh>
+				<MudTh>
+					<MudTooltip Text="@LocalizationService.GetTranslation("UserConfigurationDialog.InGamePseudoTooltip")">
+						<MudText Class="tooltip-text">@LocalizationService.GetTranslation("UserConfigurationDialog.InGamePseudo")</MudText>
+					</MudTooltip>
+				</MudTh>
+				<MudTh>
+					<MudTooltip Text="@LocalizationService.GetTranslation("UserConfigurationDialog.InGameIdTooltip")">
+						<MudText Class="tooltip-text">@LocalizationService.GetTranslation("UserConfigurationDialog.InGameId")</MudText>
+					</MudTooltip>
+				</MudTh>
+				<MudTh></MudTh>
+			</HeaderContent>
+			<RowTemplate>
+				<MudTd>
+					<MudText>@context.Server.Name</MudText>
+				</MudTd>
+				<MudTd>
+					<MudTextField Value="context.Server.JoinCode"
+					              Underline="false"
+					              Variant="Variant.Text"
+					              Class="small-adornment"
+					              ReadOnly="true"
+					              Adornment="Adornment.Start"
+					              AdornmentIcon="@Icons.Material.Outlined.ContentCopy"
+					              OnAdornmentClick="@(() => CopyToClipboard(context.Server.JoinCode))"
+					              AdornmentAriaLabel="@LocalizationService.GetTranslation("CopyToClipboard")" />
+				</MudTd>
+				<MudTd>
+					<MudTextField Margin="Margin.Dense"
+					              Value="@context.Pseudo"
+					              ReadOnly
+					              Variant="Variant.Outlined" />
+				</MudTd>
+				<MudTd>
+					<MudTextField Margin="Margin.Dense"
+					              ReadOnly
+					              Value="@context.EcoUserId"
+					              Variant="Variant.Outlined"
+					              Adornment="@(context.EcoUserId is not null ? Adornment.End : Adornment.None)"
+					              AdornmentIcon="@Icons.Material.Outlined.Clear"
+					              OnAdornmentClick="@(() => ResetRegistration(context))" />
+				</MudTd>
+				<MudTd>
+					<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="0">
+						@if (_askLeaveConfirmations.ContainsKey(context))
+						{
+							<MudIconButton Color="Color.Success"
+							               Icon="@Icons.Material.Filled.Close"
+							               OnClick="@(() => CancelLeaveServer(context))" />
+						}
+						<MudTooltip Text="Leave this server, removing all your personal configuration. Confirmation required.">
+							<MudIconButton Color="Color.Error"
+							               Icon="@Icons.Material.Filled.ExitToApp"
+							               OnClick="@(() => LeaveServer(context))" />
+						</MudTooltip>
+						@if (_askLeaveConfirmations.ContainsKey(context))
+						{
+							<MudIconButton Color="Color.Warning"
+										   Icon="@Icons.Material.Filled.Check"
+										   OnClick="@(() => ConfirmLeaveServer(context))" />
+						}
+					</MudStack>
+				</MudTd>
+			</RowTemplate>
+		</MudTable>
+	</DialogContent>
+</MudDialog>
+
+
+
+@code {
+	private Dictionary<UserServer, bool> _askLeaveConfirmations = new Dictionary<UserServer, bool>();
+
+	[CascadingParameter]
+	private IMudDialogInstance MudDialog { get; set; }
+
+	private async Task OnPseudoChanged(UserServer userServer, string newPseudo)
+	{
+		if (newPseudo == "") return;
+		userServer.Pseudo = newPseudo;
+		await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+			UserServerDbService.UpdateAll(context, userServer);
+			return Task.CompletedTask;
+		});
+	}
+
+	private void LeaveServer(UserServer userServer)
+	{
+		if (!_askLeaveConfirmations.ContainsKey(userServer))
+		{
+			_askLeaveConfirmations.Add(userServer, true);
+		}
+	}
+
+	private void CancelLeaveServer(UserServer userServer)
+	{
+		if (_askLeaveConfirmations.ContainsKey(userServer))
+		{
+			_askLeaveConfirmations.Remove(userServer);
+		}
+	}
+
+	private async Task ConfirmLeaveServer(UserServer userServerToLeave)
+	{
+		if (_askLeaveConfirmations.ContainsKey(userServerToLeave))
+		{
+			_askLeaveConfirmations.Remove(userServerToLeave);
+			await ContextService.LeaveServer(userServerToLeave);
+			var nextServer = ContextService.CurrentUser!.UserServers.FirstOrDefault()?.Server;
+			if (nextServer is not null)
+			{
+				await ContextService.ChangeServer(nextServer);
+			}
+			else
+			{
+				MudDialog.Close();
+			}
+		}
+	}
+
+	private async Task CopyToClipboard(string text)
+	{
+		await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+		Snackbar.Add(LocalizationService.GetTranslation("UserConfigurationDialog.SnackbarCopy"), Severity.Info);
+	}
+
+	private async Task OnUpdateUserName(string newPseudo)
+	{
+		ContextService.CurrentUser!.Pseudo = newPseudo;
+
+		await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+			UserDbService.UpdateAll(context, ContextService.CurrentUser);
+			return Task.CompletedTask;
+		});
+
+		// ContextService.InvokeContextChanged();
+	}
+
+	private async Task ExportUser()
+	{
+		var content = $"{ContextService.CurrentUser!.Id}:{ContextService.CurrentUser.SecretId}";
+		var bytes = System.Text.Encoding.UTF8.GetBytes(content);
+
+		var base64 = Convert.ToBase64String(bytes);
+		var fileName = "eco_gnome_user_backup.txt";
+
+		await JsRuntime.InvokeVoidAsync("triggerFileDownload", fileName, base64);
+	}
+
+	private async Task ResetRegistration(UserServer userServer)
+	{
+		var confirmed = await JsRuntime.InvokeAsync<bool>("confirm", LocalizationService.GetTranslation("UserConfigurationDialog.ResetRegistration"));
+
+		if (!confirmed) return;
+
+		userServer.EcoUserId = null;
+		userServer.Pseudo = null;
+
+		await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+			UserServerDbService.UpdateAll(context, userServer);
+			return Task.CompletedTask;
+		});
+	}
+
+	private async Task ImportUser(IBrowserFile? file)
+	{
+		if (file is { ContentType: "text/plain" })
+		{
+			await using var stream = file.OpenReadStream(1_000);
+			using var memoryStream = new MemoryStream();
+			await stream.CopyToAsync(memoryStream);
+
+			memoryStream.Position = 0;
+			using var reader = new StreamReader(memoryStream);
+			var content = await reader.ReadToEndAsync();
+
+			try
+			{
+				var publicUserId = content.Split(':')[0].ToLower();
+				var secretUserId = content.Split(':')[1].ToLower();
+
+				var foundUser = await UserDbService.SearchByIdAndSecretAsync(new Guid(publicUserId), new Guid(secretUserId));
+
+				if (foundUser is not null)
+				{
+					var confirmed = await JsRuntime.InvokeAsync<bool>("confirm", $"{LocalizationService.GetTranslation("UserConfigurationDialog.PopupConfirmImportBegin")} {foundUser.Pseudo} {LocalizationService.GetTranslation("UserConfigurationDialog.PopupConfirmImportEnd")}");
+
+					if (confirmed)
+					{
+						await LocalStorageService.AddItem("UserId", publicUserId);
+						await LocalStorageService.AddItem("SecretUserId", secretUserId);
+
+						Navigation.NavigateTo("/", forceLoad: true);
+					}
+				}
+				else
+				{
+					Snackbar.Add(LocalizationService.GetTranslation("UserConfigurationDialog.SnackbarErrorBadUser"), Severity.Error);
+				}
+			}
+			catch (Exception e)
+			{
+				Snackbar.Add(LocalizationService.GetTranslation("UserConfigurationDialog.SnackbarErrorBadFile"), Severity.Error);
+			}
+		}
+	}
+}

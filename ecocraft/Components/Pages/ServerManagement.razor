@@ -1,0 +1,1422 @@
+﻿@page "/server-management"
+@implements IDisposable
+@using ecocraft.Models
+@using ecocraft.Extensions
+@using ecocraft.Components.Dialog
+@using ecocraft.Services
+@using ecocraft.Services.ImportData
+@using ecocraft.Services.DbServices
+@using ecocraft.Components.Utils
+@using Microsoft.EntityFrameworkCore
+@inject ImportDataService ImportDataService
+@inject ContextService ContextService
+@inject NavigationManager Navigation
+@inject ServerDbService ServerDbService
+@inject UserServerDbService UserServerDbService
+@inject ItemOrTagDbService ItemOrTagDbService
+@inject ServerDataService ServerDataService
+@inject LocalizationService LocalizationService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JsRuntime
+@inject IDialogService DialogService
+@inject DataContextDbService DataContextDbService
+@inject UserServerDataService UserServerDataService
+@inject PriceCalculatorService PriceCalculatorService
+@inject IDbContextFactory<EcoCraftDbContext> EcoCraftDbFactory
+
+<PageTitle>@LocalizationService.GetTranslation("NavMenu.NavAdmin") - EcoWulf</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge">
+	<MudGrid Style="height: auto">
+		<MudItem lg="6" md="12">
+			<MudPaper Style="height: 100%">
+				<MudPaper Class="pa-2 pl-4 border-5 d-flex align-center"
+				          Style="width: 100%; height: 45px; background-color: #303038 !important; border-radius: var(--mud-default-borderradius) 0 0 0; border-bottom: 1px solid var(--mud-palette-table-lines)"
+				          Elevation="0">
+					<MudText>@LocalizationService.GetTranslation("ServerManagement.ServerSettings.Title")</MudText>
+				</MudPaper>
+				<MudStack Class="pa-4">
+					<MudStack Row>
+						<MudTextField Value="ContextService.CurrentServer!.Name"
+						              Label="@LocalizationService.GetTranslation("ServerManagement.ServerSettings.ServerName")"
+						              Variant="Variant.Outlined"
+						              ValueChanged="@((string newServerName) => OnServerNameChanged(ContextService.CurrentUserServer!, newServerName))" />
+					</MudStack>
+					<MudStack Row>
+						<MudTooltip RootClass="flex-1" Text="@LocalizationService.GetTranslation("ServerManagement.JoinCodeTooltip")">
+							<MudTextField Readonly
+							              Value="@ContextService.CurrentServer!.JoinCode"
+							              Label="@LocalizationService.GetTranslation("JoinCode")"
+							              Adornment="Adornment.End"
+							              AdornmentColor="Color.Default"
+							              AdornmentIcon="@Icons.Material.Outlined.ContentCopy"
+							              OnAdornmentClick="@(() => CopyToClipboard(ContextService.CurrentServer!.JoinCode))"
+							              Variant="Variant.Outlined"/>
+						</MudTooltip>
+						<MudTooltip RootStyle="display: flex; flex: 0 0 auto; align-items: center" Text="@LocalizationService.GetTranslation("ServerManagement.RefreshJoinCodeTooltip")">
+							<MudIconButton Size="Size.Medium" Color="Color.Tertiary" Icon="@Icons.Material.Filled.Refresh" OnClick="@(() => UpdateJoinCode(ContextService.CurrentUserServer!))"/>
+						</MudTooltip>
+						<MudTooltip RootClass="flex-1" Text="@LocalizationService.GetTranslation("ServerManagement.EcoServerIdTooltip")">
+							<MudTextField Value="@ContextService.CurrentServer!.EcoServerId"
+							              ReadOnly
+							              Label="@LocalizationService.GetTranslation("ServerManagement.EcoServerId")"
+							              ShrinkLabel
+							              Variant="Variant.Outlined"
+							              Adornment="Adornment.End"
+							              AdornmentIcon="@Icons.Material.Filled.DeleteForever"
+							              OnAdornmentClick="@(() => DissociateServer())"/>
+						</MudTooltip>
+					</MudStack>
+					<MudStack Row>
+						<MudTooltip RootClass="flex-1" Text="@LocalizationService.GetTranslation("ServerManagement.ApiKey.Tooltip")">
+							<MudTextField Value="@ContextService.CurrentServer!.ApiKey"
+							              ReadOnly
+							              Label="@LocalizationService.GetTranslation("ServerManagement.ApiKey.Label")"
+							              ShrinkLabel
+							              InputType="InputType.Password"
+							              Variant="Variant.Outlined"
+							              Adornment="Adornment.End"
+							              AdornmentIcon="@Icons.Material.Outlined.ContentCopy"
+							              OnAdornmentClick="@(() => CopyToClipboard(ContextService.CurrentServer!.ApiKey.ToString()))"/>
+						</MudTooltip>
+						<MudTooltip RootStyle="display: flex; flex: 0 0 auto; align-items: center" Text="@LocalizationService.GetTranslation("ServerManagement.ApiKey.Refresh")">
+							<MudIconButton Size="Size.Medium" Color="Color.Tertiary" Icon="@Icons.Material.Filled.Refresh" OnClick="@(() => RefreshApiKey())"/>
+						</MudTooltip>
+					</MudStack>
+					<MudStack Row Class="flex-no-grow" AlignItems="AlignItems.Start" Spacing="6">
+						<MudStack Spacing="0" Style="min-width: 220px">
+							@if (!_isLoadingData)
+							{
+								<MudTable Items="_stats" Dense Hover>
+									<HeaderContent>
+										<MudTh colspan="2">@LocalizationService.GetTranslation("ServerManagement.ServerSettings.Stats")</MudTh>
+									</HeaderContent>
+									<RowTemplate>
+										<MudTd>@context.Item1</MudTd>
+										<MudTd>@context.Item2</MudTd>
+									</RowTemplate>
+								</MudTable>
+								<MudText Typo="Typo.body2" Class="pa-1 pt-2">@LocalizationService.GetTranslation("ServerManagement.ServerSettings.LastDataUploadTime") @(ContextService.CurrentServer!.LastDataUploadTime?.ToString() ?? "???")</MudText>
+							}
+							else
+							{
+								<MudProgressCircular Size="Size.Small" Color="Color.Primary" Indeterminate="true" Class="ml-2"/>
+							}
+						</MudStack>
+						<MudPaper Class="mud-background pa-3">
+							<MudStack AlignItems="AlignItems.Center" Style="text-indent: 8px">
+								<MudMarkdown Value="@LocalizationService.GetTranslation("ServerManagement.ServerSettings.EcoGnomeModExplanation1")" />
+								<MudMarkdown Value="@LocalizationService.GetTranslation("ServerManagement.ServerSettings.EcoGnomeModExplanation2")" />
+								<MudStack Row>
+									<MudFileUpload T="IBrowserFile" FilesChanged="UploadDataJsonFile">
+										<CustomContent Context="fileUpload">
+											<MudButton Disabled="_showUploadServerDataLoader"
+											           Variant="Variant.Filled"
+											           Color="Color.Primary"
+											           StartIcon="@Icons.Material.Filled.CloudUpload"
+											           OnClick="@fileUpload.OpenFilePickerAsync">
+												@LocalizationService.GetTranslation("ServerManagement.ServerSettings.Upload")
+												@if (_showUploadServerDataLoader)
+												{
+													<MudProgressCircular Size="Size.Small" Color="Color.Primary" Indeterminate="true" Class="ml-2"/>
+												}
+											</MudButton>
+										</CustomContent>
+										<SelectedTemplate>
+										</SelectedTemplate>
+									</MudFileUpload>
+
+									<div class="py-4 ml-4 mr-2 border-l-1"></div>
+
+									<MudStack>
+										@if (!_copyExistingServerClicked)
+										{
+											<MudButton StartIcon="@Icons.Material.Filled.ImportExport"
+											           Variant="Variant.Filled"
+											           OnClick="() => _copyExistingServerClicked = true"
+											           Color="Color.Tertiary">
+												@LocalizationService.GetTranslation("ServerManagement.ServerSettings.CopyExistingServer")
+											</MudButton>
+										}
+										else
+										{
+											if (!_showCopyExistingServerLoader)
+											{
+												<MudSelect T="Server"
+												           @bind-Value="_copyServer"
+												           Class="select-dense copy-server-select"
+												           Style="min-width:200px;padding-left:10px"
+												           Label="@LocalizationService.GetTranslation("ServerManagement.ServerSettings.ChooseServer")"
+												           Dense="false"
+												           Underline="false"
+												           Variant="Variant.Outlined"
+												           AnchorOrigin="Origin.BottomLeft"
+												           TransformOrigin="Origin.TopLeft">
+													@foreach (var server in ContextService.AvailableServers.Where(r => r != ContextService.CurrentServer))
+													{
+														<MudSelectItem T="Server" Value="@server">@server.Name</MudSelectItem>
+													}
+												</MudSelect>
+											}
+
+											<MudButton Disabled="@(_showCopyExistingServerLoader || _copyServer is null)"
+											           StartIcon="@Icons.Material.Filled.ImportExport"
+											           Variant="Variant.Filled"
+											           OnClick="() => CopyExistingServer()"
+											           Color="Color.Tertiary">
+												@LocalizationService.GetTranslation("ServerManagement.ServerSettings.CopyThisServer")
+
+												@if (_showCopyExistingServerLoader)
+												{
+													<MudProgressCircular Size="Size.Small" Color="Color.Tertiary" Indeterminate="true" Class="ml-2"/>
+												}
+											</MudButton>
+										}
+									</MudStack>
+								</MudStack>
+							</MudStack>
+						</MudPaper>
+					</MudStack>
+					@if (ContextService.CurrentUser!.CanUploadMod || ContextService.CurrentUser.SuperAdmin)
+					{
+						<MudStack Class="pa-3 mud-background" Spacing="1">
+							<MudText>
+								<MudIcon Icon="@MDIIcons.Filled.CloudAlert" Color="Color.Warning" Size="Size.Small" Style="position: relative; top:  3px"/>
+								@LocalizationService.GetTranslation("ServerManagement.ModUpload.Description")
+							</MudText>
+							<ModUploader Color="Color.Warning" />
+						</MudStack>
+					}
+					<MudStack Row Justify="Justify.FlexEnd">
+						<MudButton HtmlTag="label"
+						           Disabled="_showDeleteServerLoader"
+						           Variant="Variant.Filled"
+						           Color="Color.Error"
+						           StartIcon="@Icons.Material.Filled.DeleteForever"
+						           OnClick="DeleteServer">
+							@LocalizationService.GetTranslation("ServerManagement.ServerSettings.Delete")
+							@if (_showDeleteServerLoader)
+							{
+								<MudProgressCircular Size="Size.Small" Color="Color.Error" Indeterminate="true" Class="ml-2"/>
+							}
+						</MudButton>
+					</MudStack>
+				</MudStack>
+			</MudPaper>
+		</MudItem>
+		<MudItem lg="6" md="12">
+			<MudTable Items="@GetUserServers()"
+			          Filter="new Func<UserServer,bool>(FilterPseudo)"
+			          FixedHeader="true"
+			          Height="500px"
+			          Dense="true">
+				<HeaderContent>
+					<MudTh>
+						<MudStack Row AlignItems="AlignItems.Center">
+							<MudText>@LocalizationService.GetTranslation("ServerManagement.Members.Title")</MudText>
+							<MudTextField @bind-Value="_searchPseudo"
+							              Immediate
+							              Placeholder="@LocalizationService.GetTranslation("Search")"
+							              Adornment="Adornment.Start"
+							              AdornmentIcon="@Icons.Material.Filled.Search"
+							              IconSize="Size.Medium"
+							              Class="mt-0" />
+						</MudStack>
+					</MudTh>
+					<MudTh></MudTh>
+				</HeaderContent>
+				<RowTemplate>
+					<MudTd>
+						<MudStack Row AlignItems="AlignItems.Center">
+							<MudTooltip Text="@LocalizationService.GetTranslation("ServerManagement.Members.Tooltip.Admin")">
+								<MudIcon Class="mt-1" Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Small" />
+							</MudTooltip>
+							<MudText Typo="Typo.body2">@context.GetPseudo()</MudText>
+						</MudStack>
+					</MudTd>
+					<MudTd>
+						@{
+							var isCurrentUser = context.UserId == ContextService.CurrentUser!.Id;
+						}
+						<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.FlexEnd" Spacing="3">
+							<MudTooltip Text="@LocalizationService.GetTranslation("ServerManagement.Snackbar.CantEditYourself")" Disabled="@(!isCurrentUser)">
+								<MudButton Variant="Variant.Filled"
+								           Color="@(context.IsAdmin ? Color.Warning : Color.Error)"
+								           StartIcon="@(context.IsAdmin ? Icons.Material.Filled.KeyboardDoubleArrowDown : Icons.Material.Filled.KeyboardDoubleArrowUp)"
+								           Disabled="@isCurrentUser"
+								           OnClick="@(() => ToggleAdmin(context))">
+									@(context.IsAdmin ? LocalizationService.GetTranslation("ServerManagement.Members.DemoteAdmin") : LocalizationService.GetTranslation("ServerManagement.Members.PromoteAdmin"))
+								</MudButton>
+							</MudTooltip>
+
+							<MudTooltip Text="@LocalizationService.GetTranslation("ServerManagement.Snackbar.CantEditYourself")" Disabled="@(!isCurrentUser)">
+								<MudButton HtmlTag="label"
+								           Variant="Variant.Filled"
+								           Color="Color.Primary"
+								           StartIcon="@Icons.Material.Filled.ExitToApp"
+								           Disabled="@isCurrentUser"
+								           OnClick="@(() => KickUser(context))">
+									@LocalizationService.GetTranslation("ServerManagement.Members.KickUser")
+								</MudButton>
+							</MudTooltip>
+							@if (_askKickConfirmations.ContainsKey(context))
+							{
+								<br/>
+								<MudButton Variant="Variant.Filled"
+								           Color="Color.Success"
+								           StartIcon="@Icons.Material.Filled.Close"
+								           OnClick="@(() => CancelKick(context))" />
+								<MudButton Variant="Variant.Filled"
+								           Color="Color.Warning"
+								           StartIcon="@Icons.Material.Filled.Check"
+								           OnClick="@(() => ConfirmKick(context))" />
+							}
+						</MudStack>
+					</MudTd>
+				</RowTemplate>
+				<PagerContent>
+					<MudTablePager PageSizeOptions="new []{10, 25, 50}" />
+				</PagerContent>
+			</MudTable>
+		</MudItem>
+		@if (_isLoadingData)
+		{
+			<MudItem xs="12" Class="px-4 pt-4">
+				<MudStack Justify="Justify.Center" AlignItems="AlignItems.Center">
+					<MudProgressCircular Size="Size.Large" Color="Color.Primary" Indeterminate="true" Class="ml-2"/>
+				</MudStack>
+			</MudItem>
+		}
+		else if (ContextService.CurrentServerData is not null)
+		{
+			<MudItem lg="4" md="12">
+				<MudTable Items="@GetTags()"
+				          Filter="new Func<ItemOrTag, bool>(FilterTag)"
+				          Virtualize="false"
+				          FixedHeader="true"
+				          Height="700px"
+				          Dense="true"
+				          Hover="true">
+					<HeaderContent>
+						<MudTh>
+							<MudStack Row AlignItems="AlignItems.Center">
+								<MudText>@LocalizationService.GetTranslation("TagName")</MudText>
+								<MudTextField @bind-Value="_searchTag" Immediate Placeholder="@LocalizationService.GetTranslation("Search")" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+							</MudStack>
+						</MudTh>
+					</HeaderContent>
+					<RowTemplate>
+						<MudTd>
+							<MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+								<MudLink OnClick="@(() => ToggleTag(context))">
+									<MudText Typo="Typo.body2">
+										@LocalizationService.GetTranslation(context) (@context.AssociatedItems.Count)
+									</MudText>
+								</MudLink>
+								@if (_selectedTag == context)
+								{
+									<MudIconButton Class="pa-0"
+									               Color="Color.Primary"
+									               Icon="@Icons.Material.Filled.Clear"
+									               Size="Size.Small"
+									               OnClick="@(() => ToggleTag(context))"/>
+								}
+							</MudStack>
+						</MudTd>
+					</RowTemplate>
+					<PagerContent>
+						<MudTablePager PageSizeOptions="new[] { 25, 50, 100, 200 }"/>
+					</PagerContent>
+				</MudTable>
+			</MudItem>
+			<MudItem lg="8" md="12">
+				<MudTable @key="_itemsTableRenderVersion" Items="@GetItemsWithPolicyRows()" Filter="new Func<ItemOrTag, bool>(FilterItem)" Virtualize="false" FixedHeader="true" Height="700px" Dense="true" Hover="true">
+					<HeaderContent>
+						<MudTh>
+							<MudStack Row AlignItems="AlignItems.Center">
+								<MudText>@LocalizationService.GetTranslation("Name")</MudText>
+								<MudTextField @bind-Value="_searchItem" Immediate Placeholder="@LocalizationService.GetTranslation("Search")" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+							</MudStack>
+						</MudTh>
+						<MudTh>
+							<MudStack Row>
+								<MudText>
+									@LocalizationService.GetTranslation("ServerManagement.Items.Min")</MudText>
+								<MudTooltip Text="@LocalizationService.GetTranslation("ServerManagement.Items.Min.Tooltip")">
+									<MudIconButton Icon="@Icons.Material.Filled.ClearAll"
+									               OnClick="@(() => OnClearMinPrices(GetItems()))"
+									               Color="Color.Primary"
+									               Size="Size.Small"/>
+								</MudTooltip>
+							</MudStack>
+						</MudTh>
+						<MudTh>
+							<MudStack Row>
+								<MudText>
+									@LocalizationService.GetTranslation("ServerManagement.Items.Default")</MudText>
+								<MudTooltip Text="@LocalizationService.GetTranslation("ServerManagement.Items.Default.Tooltip")">
+									<MudIconButton Icon="@Icons.Material.Filled.ClearAll"
+									               OnClick="@(() => OnClearDefaultPrices(GetItems()))"
+									               Color="Color.Primary"
+									               Size="Size.Small"/>
+								</MudTooltip>
+							</MudStack>
+						</MudTh>
+						<MudTh>
+							<MudStack Row>
+								<MudText>@LocalizationService.GetTranslation("ServerManagement.Items.Max")</MudText>
+								<MudTooltip Text="@LocalizationService.GetTranslation("ServerManagement.Items.Max.Tooltip")">
+									<MudIconButton Icon="@Icons.Material.Filled.ClearAll"
+									               OnClick="@(() => OnClearMaxPrices(GetItems()))"
+									               Color="Color.Primary"
+									               Size="Size.Small"/>
+								</MudTooltip>
+							</MudStack>
+						</MudTh>
+					</HeaderContent>
+					<RowTemplate>
+						@if (IsCalorieCostPolicyRow(context))
+						{
+							<MudTd>
+								<MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+									<MudText Typo="Typo.body2">@LocalizationService.GetTranslation("ServerManagement.CalorieCostPolicy.Title")</MudText>
+									<MudSwitch T="bool"
+									           Color="Color.Warning"
+									           Value="_isCalorieCostLocked"
+									           ValueChanged="OnCalorieLockChangedAsync"
+									           Label="@LocalizationService.GetTranslation("ServerManagement.CalorieCostPolicy.Lock")"/>
+								</MudStack>
+							</MudTd>
+							@if (_isCalorieCostLocked)
+							{
+								<MudTd></MudTd>
+								<MudTd>
+									<MudNumericField T="decimal?"
+									                 Class="rectangle-input"
+									                 Value="_lockedCalorieCost"
+									                 Format="F2"
+									                 ValueChanged="OnLockedCalorieCostChanged"
+									                 Converter="@CultureInvariantConverter.DotOrCommaDecimalNull"
+									                 Variant="Variant.Outlined"/>
+								</MudTd>
+								<MudTd></MudTd>
+							}
+							else
+							{
+								<MudTd>
+									<MudNumericField T="decimal?"
+									                 Class="rectangle-input"
+									                 Value="_calorieCostMin"
+									                 Format="F2"
+									                 ValueChanged="OnCalorieCostMinChanged"
+									                 Converter="@CultureInvariantConverter.DotOrCommaDecimalNull"
+									                 Variant="Variant.Outlined"/>
+								</MudTd>
+								<MudTd>
+									<MudNumericField T="decimal?"
+									                 Class="rectangle-input"
+									                 Value="_calorieCostDefault"
+									                 Format="F2"
+									                 ValueChanged="OnCalorieCostDefaultChanged"
+									                 Converter="@CultureInvariantConverter.DotOrCommaDecimalNull"
+									                 Variant="Variant.Outlined"/>
+								</MudTd>
+								<MudTd>
+									<MudNumericField T="decimal?"
+									                 Class="rectangle-input"
+									                 Value="_calorieCostMax"
+									                 Format="F2"
+									                 ValueChanged="OnCalorieCostMaxChanged"
+									                 Converter="@CultureInvariantConverter.DotOrCommaDecimalNull"
+									                 Variant="Variant.Outlined"/>
+								</MudTd>
+							}
+						}
+						else if (IsMarginPolicyRow(context))
+						{
+							<MudTd>
+								<MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+									<MudText Typo="Typo.body2">@LocalizationService.GetTranslation("ServerManagement.MarginPolicy.Title")</MudText>
+									<MudSwitch T="bool"
+									           Color="Color.Warning"
+									           Value="_isMarginLocked"
+									           ValueChanged="OnMarginLockChangedAsync"
+									           Label="@LocalizationService.GetTranslation("ServerManagement.MarginPolicy.Lock")"/>
+								</MudStack>
+							</MudTd>
+							@if (_isMarginLocked)
+							{
+								<MudTd></MudTd>
+								<MudTd>
+									<MudNumericField T="decimal?"
+									                 Class="rectangle-input"
+									                 Value="_lockedMargin"
+									                 Format="F2"
+									                 ValueChanged="OnLockedMarginChanged"
+									                 Converter="@CultureInvariantConverter.DotOrCommaDecimalNull"
+									                 Variant="Variant.Outlined"/>
+								</MudTd>
+								<MudTd></MudTd>
+							}
+							else
+							{
+								<MudTd>
+									<MudNumericField T="decimal?"
+									                 Class="rectangle-input"
+									                 Value="_marginMin"
+									                 Format="F2"
+									                 ValueChanged="OnMarginMinChanged"
+									                 Converter="@CultureInvariantConverter.DotOrCommaDecimalNull"
+									                 Variant="Variant.Outlined"/>
+								</MudTd>
+								<MudTd>
+									<MudNumericField T="decimal?"
+									                 Class="rectangle-input"
+									                 Value="_marginDefault"
+									                 Format="F2"
+									                 ValueChanged="OnMarginDefaultChanged"
+									                 Converter="@CultureInvariantConverter.DotOrCommaDecimalNull"
+									                 Variant="Variant.Outlined"/>
+								</MudTd>
+								<MudTd>
+									<MudNumericField T="decimal?"
+									                 Class="rectangle-input"
+									                 Value="_marginMax"
+									                 Format="F2"
+									                 ValueChanged="OnMarginMaxChanged"
+									                 Converter="@CultureInvariantConverter.DotOrCommaDecimalNull"
+									                 Variant="Variant.Outlined"/>
+								</MudTd>
+							}
+						}
+						else
+						{
+							<MudTd>
+								<MudText Typo="Typo.body2">@LocalizationService.GetTranslation(context)</MudText>
+							</MudTd>
+							<MudTd>
+								<MudNumericField T="decimal?"
+								                 Class="rectangle-input"
+								                 Disabled="@(context.IsTag)"
+								                 HideSpinButtons="@(context.IsTag)"
+								                 Value="context.MinPrice"
+								                 Format="F2"
+								                 Variant="Variant.Outlined"
+								                 Converter="@CultureInvariantConverter.DotOrCommaDecimalNull"
+								                 ValueChanged="@(value => OnMinValueChange(context, value))"/>
+							</MudTd>
+							<MudTd>
+								<MudNumericField T="decimal?"
+								                 Class="rectangle-input"
+								                 Disabled="@(context.IsTag)"
+								                 HideSpinButtons="@(context.IsTag)"
+								                 Value="context.DefaultPrice"
+								                 Format="F2"
+								                 Variant="Variant.Outlined"
+								                 Converter="@CultureInvariantConverter.DotOrCommaDecimalNull"
+								                 ValueChanged="@(value => OnDefaultValueChange(context, value))"/>
+							</MudTd>
+							<MudTd>
+								<MudNumericField T="decimal?"
+								                 Class="rectangle-input"
+								                 Disabled="@(context.IsTag)"
+								                 HideSpinButtons="@(context.IsTag)"
+								                 Value="context.MaxPrice"
+								                 Format="F2"
+								                 Variant="Variant.Outlined"
+								                 Converter="@CultureInvariantConverter.DotOrCommaDecimalNull"
+								                 ValueChanged="@(value => OnMaxValueChange(context, value))"/>
+							</MudTd>
+						}
+					</RowTemplate>
+					<PagerContent>
+						<MudTablePager PageSizeOptions="new[] { 25, 50, 100, 200 }"/>
+					</PagerContent>
+				</MudTable>
+			</MudItem>
+			<MudItem lg="4" md="12">
+				<MudTable Items="@GetConfigurableRecipes()"
+				          Filter="new Func<Recipe, bool>(FilterRecipe)"
+				          Virtualize="false"
+				          FixedHeader="true"
+				          Height="400px"
+				          Dense="true"
+				          Hover="true">
+					<HeaderContent>
+						<MudTh>
+							<MudStack Row AlignItems="AlignItems.Center">
+								<MudText>@LocalizationService.GetTranslation("ServerManagement.Recipes.Title")</MudText>
+								<MudTextField @bind-Value="_searchRecipe" Immediate Placeholder="@LocalizationService.GetTranslation("Search")" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+							</MudStack>
+						</MudTh>
+						<MudTh Style="text-align:center">@LocalizationService.GetTranslation("ServerManagement.Recipes.Locked")</MudTh>
+					</HeaderContent>
+					<RowTemplate>
+						<MudTd>
+							<MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+								<EcoIcon Item="@GetRecipeMainProduct(context)"/>
+								<MudTooltip Text="@LocalizationService.GetTranslation("ServerManagement.Recipes.Configure")">
+									<MudLink Color="Color.Default" Typo="Typo.body2" OnClick="@(() => OpenRecipeConfig(context))">
+										@LocalizationService.GetTranslation(context)
+									</MudLink>
+								</MudTooltip>
+							</MudStack>
+						</MudTd>
+						<MudTd Style="text-align:center">
+							@if (context.IsShareLocked)
+							{
+								<MudTooltip Text="@LocalizationService.GetTranslation("ServerManagement.Recipes.LockedTooltip")">
+									<MudIcon Icon="@Icons.Material.Filled.Lock" Color="Color.Warning" Size="Size.Small"/>
+								</MudTooltip>
+							}
+						</MudTd>
+					</RowTemplate>
+					<PagerContent>
+						<MudTablePager PageSizeOptions="new[] { 25, 50, 100, 200 }"/>
+					</PagerContent>
+				</MudTable>
+			</MudItem>
+		}
+	</MudGrid>
+</MudContainer>
+
+@code {
+	private bool _showUploadServerDataLoader;
+	private bool _copyExistingServerClicked;
+	private bool _showCopyExistingServerLoader;
+	private bool _showDeleteServerLoader;
+	private bool _isLoadingData;
+	private bool _isCalorieCostLocked;
+	private decimal? _lockedCalorieCost;
+	private decimal? _calorieCostMin;
+	private decimal? _calorieCostDefault;
+	private decimal? _calorieCostMax;
+	private bool _isMarginLocked;
+	private decimal? _lockedMargin;
+	private decimal? _marginMin;
+	private decimal? _marginDefault;
+	private decimal? _marginMax;
+	private readonly Dictionary<UserServer, bool> _askKickConfirmations = new ();
+	private string _searchPseudo = "";
+	private string _searchTag = "";
+	private string _searchItem = "";
+	private int _itemsTableRenderVersion;
+	private Server? _copyServer;
+	private ItemOrTag? _selectedTag;
+	private List<(string, decimal)> _stats = [];
+	private string _searchRecipe = "";
+	private List<Recipe> _configurableRecipes = [];
+	private readonly ItemOrTag _calorieCostPolicyRow = new()
+	{
+		Name = "__calorie_cost_policy_row__",
+		IsTag = true
+	};
+	private readonly ItemOrTag _marginPolicyRow = new()
+	{
+		Name = "__margin_policy_row__",
+		IsTag = true
+	};
+
+	protected override void OnInitialized()
+	{
+		if (ContextService.CurrentUser == null || ContextService.CurrentUserServer == null || !ContextService.CurrentUserServer.IsAdmin)
+		{
+			Navigation.NavigateTo("/");
+		}
+
+		ContextService.OnContextChanged += OnContextChanged;
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await RetrieveData();
+		}
+	}
+
+	private void OnContextChanged()
+	{
+		// Make sure you don't have access to this page if you're not admin on this server
+		if (ContextService.CurrentUser == null || ContextService.CurrentUserServer == null || !ContextService.CurrentUserServer.IsAdmin)
+		{
+			Navigation.NavigateTo("/");
+			return;
+		}
+
+		_selectedTag = null;
+		_copyServer = null;
+
+		_ = RetrieveData();
+	}
+
+	private async Task RetrieveData()
+	{
+		var refreshedServer = await ServerDbService.GetByIdAsync(ContextService.CurrentServer!.Id);
+		if (refreshedServer is not null)
+		{
+			ContextService.CurrentServer!.Name = refreshedServer.Name;
+			ContextService.CurrentServer.UserServers = refreshedServer.UserServers;
+			ContextService.CurrentServer.EcoServerId = refreshedServer.EcoServerId;
+			ContextService.CurrentServer.JoinCode = refreshedServer.JoinCode;
+			ContextService.CurrentServer.ApiKey = refreshedServer.ApiKey;
+			ContextService.CurrentServer.IsCalorieCostLocked = refreshedServer.IsCalorieCostLocked;
+			ContextService.CurrentServer.LockedCalorieCost = refreshedServer.LockedCalorieCost;
+			ContextService.CurrentServer.CalorieCostMin = refreshedServer.CalorieCostMin;
+			ContextService.CurrentServer.CalorieCostDefault = refreshedServer.CalorieCostDefault;
+			ContextService.CurrentServer.CalorieCostMax = refreshedServer.CalorieCostMax;
+			ContextService.CurrentServer.IsMarginLocked = refreshedServer.IsMarginLocked;
+			ContextService.CurrentServer.LockedMargin = refreshedServer.LockedMargin;
+			ContextService.CurrentServer.MarginMin = refreshedServer.MarginMin;
+			ContextService.CurrentServer.MarginDefault = refreshedServer.MarginDefault;
+			ContextService.CurrentServer.MarginMax = refreshedServer.MarginMax;
+			ContextService.CurrentServer.LastDataUploadTime = refreshedServer.LastDataUploadTime;
+		}
+
+		LoadCalorieCostPolicyFromCurrentServer();
+		LoadMarginPolicyFromCurrentServer();
+
+		if (ContextService.CurrentServerData is null)
+		{
+			_stats.Clear();
+			_isLoadingData = true;
+			StateHasChanged();
+
+			ContextService.CurrentServerData = await ServerDbService.GetServerWithData(ContextService.CurrentServer!.Id);
+
+			_isLoadingData = false;
+		}
+
+		RecalculateStats();
+
+		StateHasChanged();
+	}
+
+	private void LoadCalorieCostPolicyFromCurrentServer()
+	{
+		_isCalorieCostLocked = ContextService.CurrentServer?.IsCalorieCostLocked ?? false;
+		_lockedCalorieCost = ContextService.CurrentServer?.LockedCalorieCost;
+		_calorieCostMin = ContextService.CurrentServer?.CalorieCostMin;
+		_calorieCostDefault = ContextService.CurrentServer?.CalorieCostDefault;
+		_calorieCostMax = ContextService.CurrentServer?.CalorieCostMax;
+	}
+
+	private void LoadMarginPolicyFromCurrentServer()
+	{
+		_isMarginLocked = ContextService.CurrentServer?.IsMarginLocked ?? false;
+		_lockedMargin = ContextService.CurrentServer?.LockedMargin;
+		_marginMin = ContextService.CurrentServer?.MarginMin;
+		_marginDefault = ContextService.CurrentServer?.MarginDefault;
+		_marginMax = ContextService.CurrentServer?.MarginMax;
+	}
+
+	private async Task RefreshCurrentServerDataAndStats()
+	{
+		var refreshedServerData = await ServerDbService.GetServerWithData(ContextService.CurrentServer!.Id);
+		ContextService.CurrentServerData = refreshedServerData;
+
+		// Keep the lightweight server context in sync with metadata updated during import.
+		ContextService.CurrentServer.LastDataUploadTime = refreshedServerData.LastDataUploadTime;
+
+		RecalculateStats();
+	}
+
+	public void Dispose()
+	{
+		ContextService.OnContextChanged -= OnContextChanged;
+	}
+
+	private void RecalculateStats()
+	{
+		_stats.Clear();
+
+		_stats.Add((LocalizationService.GetTranslation("ServerManagement.ServerSettings.Skills"), ContextService.CurrentServerData!.Skills.Count(s => s.Profession is not null)));
+		_stats.Add((LocalizationService.GetTranslation("ServerManagement.ServerSettings.Talents"), ContextService.CurrentServerData.Skills.SelectMany(s => s.Talents).Count()));
+		_stats.Add((LocalizationService.GetTranslation("ServerManagement.ServerSettings.Crafting"), ContextService.CurrentServerData.CraftingTables.Count));
+		_stats.Add((LocalizationService.GetTranslation("ServerManagement.ServerSettings.Modules"), ContextService.CurrentServerData.PluginModules.Count));
+		_stats.Add((LocalizationService.GetTranslation("ServerManagement.ServerSettings.Recipes"), ContextService.CurrentServerData.Recipes.Count));
+		_stats.Add((LocalizationService.GetTranslation("ServerManagement.ServerSettings.Elements"), ContextService.CurrentServerData.Recipes.SelectMany(r => r.Elements).Count()));
+		_stats.Add((LocalizationService.GetTranslation("ServerManagement.ServerSettings.Items"), ContextService.CurrentServerData.ItemOrTags.Count(i => !i.IsTag)));
+		_stats.Add((LocalizationService.GetTranslation("ServerManagement.ServerSettings.Tags"), ContextService.CurrentServerData.ItemOrTags.Count(i => i.IsTag)));
+
+		BuildConfigurableRecipes();
+	}
+
+	// A recipe is "configurable" for issue #85 when it has several outputs: only then do the
+	// output share and reintegration matter. Built once per server-data load.
+	private void BuildConfigurableRecipes()
+	{
+		_configurableRecipes = ContextService.CurrentServerData is null
+			? []
+			: ContextService.CurrentServerData.Recipes
+				.Where(r => r.Elements.Count(e => e.IsProduct()) > 1)
+				.OrderBy(r => LocalizationService.GetTranslation(r), StringComparer.CurrentCultureIgnoreCase)
+				.ToList();
+	}
+
+	private List<Recipe> GetConfigurableRecipes()
+	{
+		return _configurableRecipes;
+	}
+
+	private ItemOrTag? GetRecipeMainProduct(Recipe recipe)
+	{
+		return recipe.Elements
+			.Where(e => e.IsProduct())
+			.OrderBy(e => e.Index)
+			.FirstOrDefault()?.ItemOrTag;
+	}
+
+	private bool FilterRecipe(Recipe recipe)
+	{
+		if (string.IsNullOrWhiteSpace(_searchRecipe))
+		{
+			return true;
+		}
+
+		return recipe.Name.Contains(_searchRecipe, StringComparison.OrdinalIgnoreCase)
+		       || LocalizationService.GetTranslation(recipe).Contains(_searchRecipe, StringComparison.OrdinalIgnoreCase);
+	}
+
+	// Opens the shared RecipeDialog in admin mode for a server recipe. The admin's default
+	// DataContext is used as the live preview/calculation context; the recipe is provisioned
+	// into it if absent. Edits target the server-level Element defaults / Recipe lock.
+	private async Task OpenRecipeConfig(Recipe recipe)
+	{
+		try
+		{
+			var adminDataContext = ContextService.CurrentUserServer!.DataContexts.First(d => d.IsDefault);
+			adminDataContext = await DataContextDbService.GetDataContextWithData(adminDataContext.Id, ContextService.CurrentServerData!);
+
+			if (recipe.GetCurrentUserRecipe(adminDataContext) is null)
+			{
+				await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+				{
+					UserServerDataService.AddUserRecipe(context, adminDataContext, ContextService.CurrentServerData!, recipe);
+					return Task.CompletedTask;
+				});
+
+				adminDataContext = await DataContextDbService.GetDataContextWithData(adminDataContext.Id, ContextService.CurrentServerData!);
+			}
+
+			await PriceCalculatorService.Calculate(adminDataContext, "ServerManagement:OpenRecipeConfig");
+
+			var parameters = new DialogParameters
+			{
+				["DataContext"] = adminDataContext,
+				["Recipe"] = recipe,
+				["AdminServerMode"] = true,
+				["RecalculateRequested"] = new Func<string, Task>(origin => PriceCalculatorService.Calculate(adminDataContext, $"ServerManagement:{origin}")),
+			};
+			var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true, CloseButton = true, MaxWidth = MaxWidth.Large };
+
+			var dialog = await DialogService.ShowAsync<RecipeDialog>(LocalizationService.GetTranslation(recipe), parameters, options);
+			await dialog.Result;
+
+			await RefreshItemsTableAsync();
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine(ex);
+			Snackbar.Add($"{LocalizationService.GetTranslation("ServerManagement.Recipes.OpenError")}: {ex.Message}", Severity.Error);
+		}
+	}
+
+	private async Task OnCalorieLockChangedAsync(bool value)
+	{
+		_isCalorieCostLocked = value;
+
+		if (_isCalorieCostLocked && _lockedCalorieCost is null)
+		{
+			_lockedCalorieCost = 0;
+		}
+
+		await PersistCalorieCostPolicy();
+	}
+
+	private async Task OnLockedCalorieCostChanged(decimal? value)
+	{
+		_lockedCalorieCost = _isCalorieCostLocked && value is null ? 0 : value;
+		await PersistCalorieCostPolicy();
+	}
+
+	private async Task OnCalorieCostMinChanged(decimal? value)
+	{
+		_calorieCostMin = value;
+		await PersistCalorieCostPolicy();
+	}
+
+	private async Task OnCalorieCostDefaultChanged(decimal? value)
+	{
+		_calorieCostDefault = value;
+		await PersistCalorieCostPolicy();
+	}
+
+	private async Task OnCalorieCostMaxChanged(decimal? value)
+	{
+		_calorieCostMax = value;
+		await PersistCalorieCostPolicy();
+	}
+
+	private async Task PersistCalorieCostPolicy()
+	{
+		var currentServer = ContextService.CurrentServer;
+		if (currentServer is null)
+		{
+			return;
+		}
+
+		// With lock enabled, an empty locked value falls back to 0.
+		if (_isCalorieCostLocked && _lockedCalorieCost is null)
+		{
+			_lockedCalorieCost = 0;
+		}
+
+		currentServer.IsCalorieCostLocked = _isCalorieCostLocked;
+		currentServer.LockedCalorieCost = _lockedCalorieCost;
+		currentServer.CalorieCostMin = _calorieCostMin;
+		currentServer.CalorieCostDefault = _calorieCostDefault;
+		currentServer.CalorieCostMax = _calorieCostMax;
+
+		try
+		{
+			await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, async context =>
+			{
+				ServerDbService.UpdateCalorieCostPolicy(context, currentServer);
+
+				if (currentServer.IsCalorieCostLocked && currentServer.LockedCalorieCost is not null)
+				{
+					await context.UserSettings
+						.Where(us => us.DataContext.UserServer.ServerId == currentServer.Id)
+						.ExecuteUpdateAsync(s => s
+							.SetProperty(x => x.CalorieCost, currentServer.LockedCalorieCost.Value));
+				}
+			});
+
+			if (currentServer.IsCalorieCostLocked && currentServer.LockedCalorieCost is not null)
+			{
+				foreach (var userServer in currentServer.UserServers)
+				{
+					foreach (var dataContext in userServer.DataContexts)
+					{
+						var userSetting = dataContext.UserSettings.FirstOrDefault();
+						if (userSetting is not null)
+						{
+							userSetting.CalorieCost = currentServer.LockedCalorieCost.Value;
+						}
+					}
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			Snackbar.Add($"{LocalizationService.GetTranslation("ServerManagement.CalorieCostPolicy.Snackbar.SaveError")}: {ex.Message}", Severity.Error);
+		}
+	}
+
+	private async Task OnMarginLockChangedAsync(bool value)
+	{
+		_isMarginLocked = value;
+
+		if (_isMarginLocked && _lockedMargin is null)
+		{
+			_lockedMargin = 0;
+		}
+
+		await PersistMarginPolicy();
+	}
+
+	private async Task OnLockedMarginChanged(decimal? value)
+	{
+		_lockedMargin = _isMarginLocked && value is null ? 0 : value;
+		await PersistMarginPolicy();
+	}
+
+	private async Task OnMarginMinChanged(decimal? value)
+	{
+		_marginMin = value;
+		await PersistMarginPolicy();
+	}
+
+	private async Task OnMarginDefaultChanged(decimal? value)
+	{
+		_marginDefault = value;
+		await PersistMarginPolicy();
+	}
+
+	private async Task OnMarginMaxChanged(decimal? value)
+	{
+		_marginMax = value;
+		await PersistMarginPolicy();
+	}
+
+	private async Task PersistMarginPolicy()
+	{
+		var currentServer = ContextService.CurrentServer;
+		if (currentServer is null)
+		{
+			return;
+		}
+
+		// With lock enabled, an empty locked value falls back to 0.
+		if (_isMarginLocked && _lockedMargin is null)
+		{
+			_lockedMargin = 0;
+		}
+
+		currentServer.IsMarginLocked = _isMarginLocked;
+		currentServer.LockedMargin = _lockedMargin;
+		currentServer.MarginMin = _marginMin;
+		currentServer.MarginDefault = _marginDefault;
+		currentServer.MarginMax = _marginMax;
+
+		try
+		{
+			await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, async context =>
+			{
+				ServerDbService.UpdateMarginPolicy(context, currentServer);
+
+				if (currentServer.IsMarginLocked && currentServer.LockedMargin is not null)
+				{
+					await context.UserMargins
+						.Where(um => um.DataContext.UserServer.ServerId == currentServer.Id)
+						.ExecuteUpdateAsync(s => s
+							.SetProperty(x => x.Margin, currentServer.LockedMargin.Value));
+				}
+			});
+
+			if (currentServer.IsMarginLocked && currentServer.LockedMargin is not null)
+			{
+				foreach (var userServer in currentServer.UserServers)
+				{
+					foreach (var dataContext in userServer.DataContexts)
+					{
+						foreach (var userMargin in dataContext.UserMargins)
+						{
+							userMargin.Margin = currentServer.LockedMargin.Value;
+						}
+					}
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			Snackbar.Add($"{LocalizationService.GetTranslation("ServerManagement.MarginPolicy.Snackbar.SaveError")}: {ex.Message}", Severity.Error);
+		}
+	}
+
+	private async Task CopyExistingServer()
+	{
+		if (_copyServer is null) return;
+
+		_showCopyExistingServerLoader = true;
+
+		StateHasChanged();
+		await Task.Yield();
+
+		await ImportDataService.CopyServerData(_copyServer!, ContextService.CurrentServer!);
+		await ServerDataService.CopyServerContribution(_copyServer!, ContextService.CurrentServer!);
+
+		_showCopyExistingServerLoader = false;
+		_copyExistingServerClicked = false;
+
+		await RefreshCurrentServerDataAndStats();
+		StateHasChanged();
+	}
+
+	private List<ItemOrTag> GetItems()
+	{
+		return ContextService.CurrentServerData!.ItemOrTags.Where(e => !e.IsTag)
+			.OrderBy(iot => LocalizationService.GetTranslation(iot)).ToList();
+	}
+
+	private List<ItemOrTag> GetItemsWithPolicyRows()
+	{
+		var items = GetItems();
+		items.Insert(0, _calorieCostPolicyRow);
+		items.Insert(1, _marginPolicyRow);
+		return items;
+	}
+
+	private bool IsCalorieCostPolicyRow(ItemOrTag itemOrTag)
+	{
+		return ReferenceEquals(itemOrTag, _calorieCostPolicyRow);
+	}
+
+	private bool IsMarginPolicyRow(ItemOrTag itemOrTag)
+	{
+		return ReferenceEquals(itemOrTag, _marginPolicyRow);
+	}
+
+	private void ToggleTag(ItemOrTag tag)
+	{
+		_selectedTag = tag == _selectedTag ? null : tag;
+	}
+
+	private async Task DissociateServer()
+	{
+		var confirmed = await JsRuntime.InvokeAsync<bool>("confirm", LocalizationService.GetTranslation("ServerManagement.Confirm.ServerDissociate"));
+		if (!confirmed) return;
+
+		await ServerDataService.Dissociate(ContextService.CurrentServer!);
+
+		StateHasChanged();
+	}
+
+	private async Task RefreshApiKey()
+	{
+		var confirmed = await JsRuntime.InvokeAsync<bool>("confirm", LocalizationService.GetTranslation("ServerManagement.ApiKey.ConfirmRefresh"));
+		if (!confirmed) return;
+
+		ContextService.CurrentServer!.ApiKey = Guid.NewGuid();
+		await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+			ServerDbService.UpdateApiKey(context, ContextService.CurrentServer);
+			return Task.CompletedTask;
+		});
+
+		StateHasChanged();
+	}
+
+	private List<ItemOrTag> GetTags()
+	{
+		return ContextService.CurrentServerData!.ItemOrTags
+			.Where(e => e.IsTag)
+			.OrderBy(iot => LocalizationService.GetTranslation(iot))
+			.ToList();
+	}
+
+	private async Task UploadDataJsonFile(IBrowserFile? file)
+	{
+		if (file is not { ContentType: "application/json" })
+		{
+			Snackbar.Add($"{LocalizationService.GetTranslation("ServerManagement.Snackbar.UploadNok")}: not a JSON file", Severity.Error);
+
+			return;
+		}
+
+		try
+		{
+			await using var stream = file.OpenReadStream(40_000_000);
+			using var memoryStream = new MemoryStream();
+			await stream.CopyToAsync(memoryStream);
+
+			memoryStream.Position = 0;
+			using var reader = new StreamReader(memoryStream);
+			var jsonContent = await reader.ReadToEndAsync();
+
+			_showUploadServerDataLoader = true;
+			StateHasChanged();
+			var (errorCount, recipeErrorNames) = await ImportDataService.ImportServerData(jsonContent, ContextService.CurrentServer!);
+
+			if (errorCount == 0)
+			{
+				Snackbar.Add(LocalizationService.GetTranslation("ServerManagement.Snackbar.UploadOk"), Severity.Success);
+			}
+			else
+			{
+				Snackbar.Add(
+					@<div>
+						@LocalizationService.GetTranslation("ServerManagement.Snackbar.UploadPartiallyNok", errorCount.ToString())
+						<ul>
+							@foreach (var recipeErrorName in recipeErrorNames)
+							{
+								<li>- @recipeErrorName</li>
+							}
+						</ul>
+						@LocalizationService.GetTranslation("ServerManagement.Snackbar.UploadPartiallyNokEnd")
+					</div>,
+					Severity.Warning,
+					config => { config.RequireInteraction = true; });
+
+			}
+
+		}
+		catch (ImportException ex)
+		{
+			Console.WriteLine(ex);
+			Snackbar.Add(LocalizationService.GetTranslation("ServerManagement.Snackbar.UploadNok") + ": " + ex.Message, Severity.Error);
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine(ex);
+			Snackbar.Add("UNEXPECTED_ERROR: " + ex.Message, Severity.Error);
+		}
+
+		await RefreshCurrentServerDataAndStats();
+
+		_showUploadServerDataLoader = false;
+		StateHasChanged();
+	}
+
+	private async Task ToggleAdmin(UserServer userServer)
+	{
+		if (userServer.UserId == ContextService.CurrentUser!.Id)
+		{
+			Snackbar.Add(LocalizationService.GetTranslation("ServerManagement.Snackbar.CantEditYourself"), Severity.Error);
+			return;
+		}
+
+		userServer.IsAdmin = !userServer.IsAdmin;
+
+		await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+			UserServerDbService.UpdateIsAdmin(context, userServer);
+
+			return Task.CompletedTask;
+		});
+	}
+
+	private async Task OnMinValueChange(ItemOrTag iot, decimal? minPrice)
+	{
+		iot.MinPrice = minPrice;
+
+		await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+			ItemOrTagDbService.UpdatePrices(context, iot);
+
+			return Task.CompletedTask;
+		});
+	}
+
+	private async Task OnDefaultValueChange(ItemOrTag iot, decimal? defaultValue)
+	{
+		iot.DefaultPrice = defaultValue;
+
+		await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+			ItemOrTagDbService.UpdatePrices(context, iot);
+
+			return Task.CompletedTask;
+		});
+	}
+
+	private async Task OnMaxValueChange(ItemOrTag iot, decimal? maxPrice)
+	{
+		iot.MaxPrice = maxPrice;
+
+		await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+			ItemOrTagDbService.UpdatePrices(context, iot);
+
+			return Task.CompletedTask;
+		});
+	}
+
+	private async Task OnClearMinPrices(List<ItemOrTag> itemOrTags)
+	{
+		var confirmed = await JsRuntime.InvokeAsync<bool>("confirm", LocalizationService.GetTranslation("ServerManagement.Confirm.ClearAllMin"));
+		if (!confirmed) return;
+
+		await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+			foreach (var itemOrTag in itemOrTags)
+			{
+				itemOrTag.MinPrice = null;
+				ItemOrTagDbService.UpdatePrices(context, itemOrTag);
+			}
+
+			return Task.CompletedTask;
+		});
+
+		// Keep the policy row in sync with the Min column clear action.
+		_calorieCostMin = null;
+		_marginMin = null;
+		await PersistCalorieCostPolicy();
+		await PersistMarginPolicy();
+		await RefreshCurrentServerDataAndStats();
+		await RefreshItemsTableAsync();
+	}
+
+	private async Task OnClearDefaultPrices(List<ItemOrTag> itemOrTags)
+	{
+		var confirmed = await JsRuntime.InvokeAsync<bool>("confirm", LocalizationService.GetTranslation("ServerManagement.Confirm.ClearAllDefault"));
+		if (!confirmed) return;
+
+		await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+			foreach (var itemOrTag in itemOrTags)
+			{
+				itemOrTag.DefaultPrice = null;
+				ItemOrTagDbService.UpdatePrices(context, itemOrTag);
+			}
+
+			return Task.CompletedTask;
+		});
+
+		// In lock mode, the Default column shows the locked value.
+		if (_isCalorieCostLocked)
+		{
+			_lockedCalorieCost = null;
+		}
+		else
+		{
+			_calorieCostDefault = null;
+		}
+
+		if (_isMarginLocked)
+		{
+			_lockedMargin = null;
+		}
+		else
+		{
+			_marginDefault = null;
+		}
+
+		await PersistCalorieCostPolicy();
+		await PersistMarginPolicy();
+		await RefreshCurrentServerDataAndStats();
+		await RefreshItemsTableAsync();
+	}
+
+	private async Task CopyToClipboard(string text)
+	{
+		await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+		Snackbar.Add(LocalizationService.GetTranslation("UserConfigurationDialog.SnackbarCopy"), Severity.Info);
+	}
+
+	private async Task OnClearMaxPrices(List<ItemOrTag> itemOrTags)
+	{
+		var confirmed = await JsRuntime.InvokeAsync<bool>("confirm", LocalizationService.GetTranslation("ServerManagement.Confirm.ClearAllMax"));
+		if (!confirmed) return;
+
+		await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+			foreach (var itemOrTag in itemOrTags)
+			{
+				itemOrTag.MaxPrice = null;
+				ItemOrTagDbService.UpdatePrices(context, itemOrTag);
+			}
+
+			return Task.CompletedTask;
+		});
+
+		// Keep the policy row in sync with the Max column clear action.
+		_calorieCostMax = null;
+		_marginMax = null;
+		await PersistCalorieCostPolicy();
+		await PersistMarginPolicy();
+		await RefreshCurrentServerDataAndStats();
+		await RefreshItemsTableAsync();
+	}
+
+	private async Task RefreshItemsTableAsync()
+	{
+		_itemsTableRenderVersion++;
+		await InvokeAsync(StateHasChanged);
+	}
+
+	private async Task OnServerNameChanged(UserServer userServer, string newServerName)
+	{
+		if (newServerName == "") return;
+
+		userServer.Server.Name = newServerName;
+
+		await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+			ServerDbService.UpdateName(context, userServer.Server);
+			return Task.CompletedTask;
+		});
+	}
+
+	private async Task UpdateJoinCode(UserServer userServer)
+	{
+		var confirmed = await JsRuntime.InvokeAsync<bool>("confirm", LocalizationService.GetTranslation("ServerManagement.Confirm.UpdateJoinCode"));
+		if (!confirmed) return;
+
+		userServer.Server.GenerateJoinCode();
+
+		await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+			ServerDbService.UpdateJoinCode(context, userServer.Server);
+			return Task.CompletedTask;
+		});
+	}
+
+	private List<UserServer> GetUserServers()
+	{
+		return ContextService.CurrentServer!.UserServers
+			.OrderBy(u => !u.IsAdmin)
+			.ThenBy(u => u.Pseudo)
+			.ToList();
+	}
+
+	private async Task DeleteServer()
+	{
+		var confirmed = await JsRuntime.InvokeAsync<bool>("confirm", LocalizationService.GetTranslation("ServerManagement.Confirm.ServerDeletion"));
+
+		if (confirmed)
+		{
+			_showDeleteServerLoader = true;
+			await InvokeAsync(StateHasChanged);
+			try
+			{
+				await ContextService.DeleteCurrentServer();
+				Navigation.NavigateTo("/");
+				return;
+			}
+			catch (Exception ex)
+			{
+				_showDeleteServerLoader = false;
+				await InvokeAsync(StateHasChanged);
+				Snackbar.Add($"Delete server failed: {ex.Message}", Severity.Error);
+			}
+		}
+	}
+
+	private void KickUser(UserServer userServer)
+	{
+		_askKickConfirmations.TryAdd(userServer, true);
+	}
+
+	private void CancelKick(UserServer userServer)
+	{
+		_askKickConfirmations.Remove(userServer);
+	}
+
+	private async Task ConfirmKick(UserServer userServerToKick)
+	{
+		if (userServerToKick.UserId == ContextService.CurrentUser!.Id)
+		{
+			Snackbar.Add(LocalizationService.GetTranslation("ServerManagement.Snackbar.CantEditYourself"), Severity.Error);
+
+			return;
+		}
+
+		if (_askKickConfirmations.Remove(userServerToKick))
+		{
+			await ContextService.KickFromServer(userServerToKick);
+		}
+	}
+
+	private bool FilterPseudo(UserServer userServer)
+	{
+		return string.IsNullOrWhiteSpace(_searchPseudo) || userServer.GetPseudo().Contains(_searchPseudo, StringComparison.OrdinalIgnoreCase);
+	}
+
+	private bool FilterTag(ItemOrTag itemOrTag)
+	{
+		return FilterItemOrTag(itemOrTag, _searchTag);
+	}
+
+	private bool FilterItem(ItemOrTag itemOrTag)
+	{
+		if (IsCalorieCostPolicyRow(itemOrTag) || IsMarginPolicyRow(itemOrTag))
+			return true;
+
+		return FilterItemOrTag(itemOrTag, _searchItem, _selectedTag);
+	}
+
+	private bool FilterItemOrTag(ItemOrTag itemOrTag, string search, ItemOrTag? specificTag = null) {
+		if (specificTag is not null && !itemOrTag.AssociatedTags.Contains(specificTag))
+			return false;
+		if (string.IsNullOrWhiteSpace(search))
+			return true;
+		if (itemOrTag.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
+			return true;
+		if (LocalizationService.GetTranslation(itemOrTag).Contains(search, StringComparison.OrdinalIgnoreCase))
+			return true;
+		return false;
+	}
+}
+

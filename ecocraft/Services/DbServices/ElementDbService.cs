@@ -1,0 +1,77 @@
+﻿using ecocraft.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace ecocraft.Services.DbServices;
+
+public class ElementDbService(IDbContextFactory<EcoCraftDbContext> factory) : IGenericDbService<Element>
+{
+	public async Task<List<Element>> GetAllAsync()
+	{
+		await using var context = await factory.CreateDbContextAsync();
+		return await GetAllAsync(context);
+	}
+
+	public async Task<List<Element>> GetAllAsync(EcoCraftDbContext context)
+	{
+		return await context.Elements
+			.Include(p => p.Recipe)
+			.ToListAsync();
+	}
+
+	public async Task<Element?> GetByIdAsync(Guid id)
+	{
+		await using var context = await factory.CreateDbContextAsync();
+		return await GetByIdAsync(id, context);
+	}
+
+	public async Task<Element?> GetByIdAsync(Guid id, EcoCraftDbContext context)
+	{
+		return await context.Elements
+			.Include(p => p.Recipe)
+			.FirstOrDefaultAsync(p => p.Id == id);
+	}
+
+	private Element CloneForDb(Element element)
+	{
+		return new Element
+		{
+			Id = element.Id,
+			RecipeId = element.Recipe.Id,
+			ItemOrTagId = element.ItemOrTag.Id,
+			Index = element.Index,
+			QuantityId = element.Quantity.Id,
+			DefaultIsReintegrated = element.DefaultIsReintegrated,
+			DefaultShare = element.DefaultShare,
+		};
+	}
+
+	public void Create(EcoCraftDbContext context, Element element)
+	{
+		context.Add(CloneForDb(element));
+	}
+
+	public void UpdateAll(EcoCraftDbContext context, Element element)
+	{
+		context.Attach(CloneForDb(element)).State = EntityState.Modified;
+	}
+
+	public void UpdateDefaultShareConfig(EcoCraftDbContext context, Element element)
+	{
+		var stub = new Element
+		{
+			Id = element.Id,
+			DefaultShare = element.DefaultShare,
+			DefaultIsReintegrated = element.DefaultIsReintegrated,
+		};
+		var entry = context.Entry(stub);
+		entry.State = EntityState.Unchanged;
+		entry.Property(x => x.DefaultShare).IsModified = true;
+		entry.Property(x => x.DefaultIsReintegrated).IsModified = true;
+	}
+
+	public void Destroy(EcoCraftDbContext context, Element element)
+	{
+		var entity = new Element { Id = element.Id };
+		context.Entry(entity).State = EntityState.Deleted;
+	}
+}

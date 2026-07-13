@@ -1,0 +1,47 @@
+﻿@using ecocraft.Services
+@using ecocraft.Components.Utils
+@inject LocalizationService LocalizationService
+@inject ContextService ContextService
+
+<MudDialog Style="min-height: 500px;">
+    <TitleContent>
+        <MudText Typo="Typo.h5">
+            @LocalizationService.GetTranslation("ServerPricesDialog.Title")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            @foreach (var itemOrTag in ContextService.CurrentServerData!.ItemOrTags.Where(i => i.MinPrice is not null || i.DefaultPrice is not null || i.MaxPrice is not null))
+            {
+                <MudItem xs="3">
+                    <MudStack Row AlignItems="AlignItems.Center">
+                        <EcoIcon Item="@itemOrTag" Size="32"/>
+                        <MudText Typo="Typo.body2">@LocalizationService.GetTranslation(itemOrTag)</MudText>
+                    </MudStack>
+                </MudItem>
+                <MudItem xs="3">
+                    <MudStack Row AlignItems="AlignItems.Center">
+                        <MudText>@LocalizationService.GetTranslation("ServerPricesDialog.Min"):</MudText>
+                        <MudText Color="Color.Primary">@itemOrTag.MinPrice $</MudText>
+                    </MudStack>
+                </MudItem>
+                <MudItem xs="3">
+                    <MudStack Row AlignItems="AlignItems.Center">
+                        <MudText>@LocalizationService.GetTranslation("ServerPricesDialog.Default"):</MudText>
+                        <MudText Color="Color.Primary">@itemOrTag.DefaultPrice $</MudText>
+                    </MudStack>
+                </MudItem>
+                <MudItem xs="3">
+                    <MudStack Row AlignItems="AlignItems.Center">
+                        <MudText>@LocalizationService.GetTranslation("ServerPricesDialog.Max"):</MudText>
+                        <MudText Color="Color.Primary">@itemOrTag.MaxPrice $</MudText>
+                    </MudStack>
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+}

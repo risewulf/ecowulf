@@ -1,0 +1,70 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ecocraft
+      POSTGRES_USER: ecocraft
+      POSTGRES_PASSWORD: ecocraft
+    command:
+      - postgres
+      - -c
+      - max_wal_size=32GB
+      - -c
+      - checkpoint_timeout=30min
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - shared_buffers=2GB
+      - -c
+      - wal_buffers=128MB
+      - -c
+      - synchronous_commit=off
+      - -c
+      - work_mem=256MB
+      - -c
+      - maintenance_work_mem=1GB
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecocraft"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=ecocraft;Username=ecocraft;Password=ecocraft;Include Error Detail=true;"
+      DataProtection__KeysPath: /app/dpkeys
+    volumes:
+      - app-assets:/app/wwwroot/assets
+      - app-videos:/app/wwwroot/videos
+      - app-dpkeys:/app/dpkeys
+    depends_on:
+      db:
+        condition: service_healthy
+
+  migrator:
+    build:
+      context: .
+      dockerfile: DataMigrator/Dockerfile
+    profiles: ["migrate"]
+    environment:
+      SQLITE_PATH: /data/ecocraft.db
+      POSTGRES_CONNECTION: "Host=db;Port=5432;Database=ecocraft;Username=ecocraft;Password=ecocraft"
+    volumes:
+      - ./ecocraft.db:/data/ecocraft.db
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  app-assets:
+  app-videos:
+  app-dpkeys:

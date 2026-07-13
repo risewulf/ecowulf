@@ -1,0 +1,126 @@
+﻿using ecocraft.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace ecocraft.Services.DbServices;
+
+public class UserRecipeDbService(IDbContextFactory<EcoCraftDbContext> factory) : IGenericUserDbService<UserRecipe>
+{
+    public async Task<List<UserRecipe>> GetAllAsync()
+    {
+        await using var context = await factory.CreateDbContextAsync();
+        return await GetAllAsync(context);
+    }
+
+    public async Task<List<UserRecipe>> GetAllAsync(EcoCraftDbContext context)
+    {
+        return await context.UserRecipes
+            .ToListAsync();
+    }
+
+    public async Task<List<UserRecipe>> GetByDataContextAsync(DataContext dataContext)
+    {
+        await using var context = await factory.CreateDbContextAsync();
+        return await GetByDataContextAsync(dataContext, context);
+    }
+
+    public async Task<List<UserRecipe>> GetByDataContextAsync(DataContext dataContext, EcoCraftDbContext context)
+    {
+        return await context.UserRecipes
+            .Where(s => s.DataContextId == dataContext.Id)
+            .Include(r => r.UserElements)
+            .ToListAsync();
+    }
+
+    public async Task<List<UserRecipe>> GetByDataContextForEcoApiAsync(DataContext dataContext)
+    {
+        await using var context = await factory.CreateDbContextAsync();
+        return await GetByDataContextForEcoApiAsync(dataContext, context);
+    }
+
+    public async Task<List<UserRecipe>> GetByDataContextForEcoApiAsync(DataContext dataContext, EcoCraftDbContext context)
+    {
+        return await context.UserRecipes
+            .Where(ur => ur.DataContextId == dataContext.Id)
+            .Include(ur => ur.Recipe)
+            .ThenInclude(r => r.Elements)
+            .ThenInclude(e => e.ItemOrTag)
+            .Include(ur => ur.Recipe)
+            .ThenInclude(r => r.Skill)
+            .ToListAsync();
+    }
+
+    public async Task<UserRecipe?> GetByIdAsync(Guid id)
+    {
+        await using var context = await factory.CreateDbContextAsync();
+        return await GetByIdAsync(id, context);
+    }
+
+    public async Task<UserRecipe?> GetByIdAsync(Guid id, EcoCraftDbContext context)
+    {
+        return await context.UserRecipes
+            .FirstOrDefaultAsync(up => up.Id == id);
+    }
+
+    private UserRecipe CloneForDb(UserRecipe userRecipe)
+    {
+        return new UserRecipe
+        {
+            Id = userRecipe.Id,
+            RecipeId = userRecipe.Recipe.Id,
+            DataContextId = userRecipe.DataContext.Id,
+            RoundFactor = userRecipe.RoundFactor,
+            LockShare = userRecipe.LockShare,
+            CraftMinutesOverride = userRecipe.CraftMinutesOverride,
+            ParentUserRecipeId = userRecipe.ParentUserRecipe?.Id,
+        };
+    }
+
+    public void Create(EcoCraftDbContext context, UserRecipe userRecipe)
+    {
+        context.Add(CloneForDb(userRecipe));
+    }
+
+    public void UpdateAll(EcoCraftDbContext context, UserRecipe userRecipe)
+    {
+        context.Attach(CloneForDb(userRecipe)).State = EntityState.Modified;
+    }
+
+    public void UpdateRoundFactor(EcoCraftDbContext context, UserRecipe userRecipe)
+    {
+        var trackedEntry = context.ChangeTracker.Entries<UserRecipe>().FirstOrDefault(e => e.Entity.Id == userRecipe.Id);
+
+        if (trackedEntry is not null)
+        {
+            trackedEntry.Entity.RoundFactor = userRecipe.RoundFactor;
+            trackedEntry.Property(x => x.RoundFactor).IsModified = true;
+            return;
+        }
+
+        var stub = new UserRecipe { Id = userRecipe.Id, RoundFactor = userRecipe.RoundFactor };
+        var entry = context.Entry(stub);
+        entry.State = EntityState.Unchanged;
+        entry.Property(x => x.RoundFactor).IsModified = true;
+    }
+
+    public void UpdateCraftMinutesOverride(EcoCraftDbContext context, UserRecipe userRecipe)
+    {
+        var trackedEntry = context.ChangeTracker.Entries<UserRecipe>().FirstOrDefault(e => e.Entity.Id == userRecipe.Id);
+
+        if (trackedEntry is not null)
+        {
+            trackedEntry.Entity.CraftMinutesOverride = userRecipe.CraftMinutesOverride;
+            trackedEntry.Property(x => x.CraftMinutesOverride).IsModified = true;
+            return;
+        }
+
+        var stub = new UserRecipe { Id = userRecipe.Id, CraftMinutesOverride = userRecipe.CraftMinutesOverride };
+        var entry = context.Entry(stub);
+        entry.State = EntityState.Unchanged;
+        entry.Property(x => x.CraftMinutesOverride).IsModified = true;
+    }
+
+    public void Destroy(EcoCraftDbContext context, UserRecipe userRecipe)
+    {
+        context.QueueDelete<UserRecipe>(userRecipe.Id);
+    }
+}

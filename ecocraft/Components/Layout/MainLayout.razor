@@ -1,0 +1,111 @@
+﻿@implements IDisposable
+@inherits LayoutComponentBase
+@using ecocraft.Services
+@inject ContextService ContextService
+@inject LocalizationService LocalizationService
+
+<MudThemeProvider Theme="_myDarkTheme" @bind-IsDarkMode="@_isDarkMode"/>
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<title>EcoWulf - @LocalizationService.GetTranslation("MainLayout.SiteTitle")</title>
+
+<MudLayout>
+    <MudAppBar Elevation="2" Class="app-bar">
+        <MudIconButton Icon="@MDIIcons.Filled.Menu" Size="Size.Medium" OnClick="() => ToggleMenu()" />
+
+        <Header IsLoadingUserAndServer="_isLoadingUserAndServer" @bind-isDarkMode="_isDarkMode"></Header>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="@_menuOpened" Variant="@DrawerVariant.Mini" OpenMiniOnHover="false" ClipMode="DrawerClipMode.Docked" Elevation="4">
+        <NavMenu IsLoadingUserAndServer="_isLoadingUserAndServer" Opened="_menuOpened"/>
+    </MudDrawer>
+
+    <MudMainContent Class="mt-16 pa-6">
+        @if (!_isLoadingUserAndServer)
+        {
+            if (ContextService.CurrentUserServer is not null)
+            {
+                @Body
+            }
+            else
+            {
+                <MudText>@LocalizationService.GetTranslation("MainLayout.PleaseJoin")</MudText>
+            }
+        }
+        else
+        {
+            <MudItem sm="12" class="d-flex justify-center">
+                <MudProgressCircular Size="Size.Large" Color="Color.Primary" Indeterminate="true" />
+            </MudItem>
+        }
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _isLoadingUserAndServer = true;
+    private bool _menuOpened;
+    private bool _isDarkMode = true;
+
+    private void ToggleMenu()
+    {
+        _menuOpened = !_menuOpened;
+    }
+
+    private readonly MudTheme _myDarkTheme = new()
+        {
+            // EcoWulf — thème sombre (par défaut)
+            PaletteDark = new PaletteDark()
+            {
+                Primary = "#66bb6a",
+                Secondary = "#26a69a",
+                Tertiary = "#a5d6a7",
+                AppbarBackground = "#1b5e20",
+                DrawerBackground = "#14351b",
+                TextPrimary = "rgba(255,255,255,0.87)",
+                TextSecondary = "rgba(255,255,255,0.70)",
+                TextDisabled = "rgba(255,255,255,0.40)",
+            },
+
+            // EcoWulf — thème clair
+            PaletteLight = new PaletteLight()
+            {
+                Primary = "#2e7d32",
+                Secondary = "#26a69a",
+                Tertiary = "#1b5e20",
+                Background = "#f1f8e9",
+                Surface = "#ffffff",
+                AppbarBackground = "#1b5e20",
+                AppbarText = "#ffffff",
+                DrawerBackground = "#2e7d32",
+                DrawerIcon = "#ffffff",
+                DrawerText = "#ffffff",
+                TextPrimary = "#1b2e1b",
+                TextSecondary = "#4a5a4a",
+            },
+        };
+
+    protected override void OnInitialized()
+    {
+        ContextService.OnContextChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        ContextService.OnContextChanged -= StateHasChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await ContextService.InitializeUserContext();
+        await ContextService.InitializeServerContext();
+        _isLoadingUserAndServer = false;
+        StateHasChanged();
+        // No idea why, very strange, but without this double StateHasChanged, PriceCalculator load fast, but Server-Management page does not, and requires a new StateHasChanged to update the header
+        // Definitively linked to MudSelect not updating directly
+        StateHasChanged();
+    }
+}

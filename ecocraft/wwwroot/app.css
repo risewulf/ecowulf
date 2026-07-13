@@ -1,0 +1,785 @@
+/*
+	This CSS file matches the color scheme from MudBlazor to Bootstrap when utilized for authentication.
+	The file remains available at all times for demonstration purposes,
+	but it is exclusively employed in the 'App.razor' component when authentication is enabled.
+*/
+
+.mud-expand-panel .mud-expand-panel-content.mud-expand-panel-gutters {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+}
+
+.mud-expand-panel .mud-expand-panel-content {
+    padding-bottom: 6px !important;
+    flex: 1 1 auto !important;
+    max-width: 100% !important;
+}
+
+.icon-sprite-wrapper {
+    width: 32px;
+    height: 32px;
+    overflow: hidden; /* Cache les parties en dehors des 32x32 pixels */
+    display: inline-block;
+}
+
+.icon-sprite {
+    width: auto; /* Permet à l'image de garder sa taille naturelle pour que le positionnement fonctionne */
+    height: auto;
+    max-width: none;
+}
+
+
+.btn-primary {
+    text-transform: uppercase;
+    --bs-btn-bg: var(--mud-palette-primary) !important;
+    --bs-btn-hover-bg: var(--mud-palette-primary-darken) !important;
+}
+
+.nav-pills {
+    --bs-nav-pills-link-active-bg: var(--mud-palette-primary) !important;
+}
+
+.nav {
+    --bs-nav-link-color: var(--mud-palette-primary) !important;
+    --bs-nav-link-hover-color: var(--mud-palette-primary-darken) !important;
+}
+
+.diagram-container {
+    width: 100%;
+    height: 600px;
+    border: none;
+}
+
+.item-node-title {
+    background-color: dodgerblue;
+}
+
+.tag-node-title {
+    background-color: grey;
+}
+
+.recipe-node-title {
+    background-color: darkgreen;
+}
+
+.eco-node {
+    padding: 20px;
+    color: white;
+}
+
+/* Conteneur du graphe de chaîne de production (rendu vis-network sur canvas) */
+.shopping-list-graph-container {
+    width: 100%;
+    height: calc(100vh - 120px);
+    border: none;
+}
+
+/* Mode automatisation : 3 colonnes — entrées à gauche, graphe au centre, sorties à droite */
+.shopping-list-automation-layout {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+    width: 100%;
+}
+
+.shopping-list-automation-side {
+    flex: 2 1 0;
+    min-width: 0;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    background-color: var(--mud-palette-surface);
+}
+
+/* Colonne de gauche (limites d'entrée) réduite de moitié (2 → 1) */
+.shopping-list-automation-side-left {
+    flex: 1 1 0;
+}
+
+/* Colonne de droite (objectifs) réduite d'un tiers (2 → 4/3) */
+.shopping-list-automation-side-right {
+    flex: 1.3333 1 0;
+}
+
+.shopping-list-automation-graph {
+    flex: 8 1 0;
+    min-width: 0;
+}
+
+.rectangle-input .mud-input {
+    height: 25px;
+    width: 100px;
+}
+
+.rectangle-input .mud-input-slot {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+}
+
+.flex-no-grow {
+    flex: 0 1 auto !important;
+}
+
+.crafting-table-config-cell {
+    vertical-align: middle !important;
+}
+
+.crafting-table-config-stack {
+    min-height: 36px;
+}
+
+.crafting-table-additional-cost-table .mud-table-container {
+    overflow: visible;
+}
+
+.crafting-table-additional-cost-table .mud-table-root {
+    background-color: transparent;
+    table-layout: fixed;
+}
+
+.crafting-table-related-recipes-table .mud-table-root {
+    table-layout: fixed;
+}
+
+.crafting-table-uniform-column,
+.recipe-list-uniform-column {
+    width: 33.3333%;
+}
+
+.crafting-table-additional-cost-table .mud-table-cell {
+    padding: 6px 12px !important;
+}
+
+.crafting-table-additional-cost-cell {
+    vertical-align: middle !important;
+}
+
+.crafting-table-additional-cost-value {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.crafting-table-additional-cost-total {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.fuel-menu-activator {
+    min-width: 0 !important;
+    width: auto;
+    height: 36px;
+    padding: 2px 1px 2px 4px !important;
+}
+
+.fuel-menu-activator .mud-button-label {
+    align-items: center;
+    gap: 4px;
+}
+
+.fuel-menu-selected-cost {
+    white-space: nowrap;
+}
+
+.fuel-menu-caret {
+    margin-left: -4px;
+}
+
+.square-input .mud-input {
+    height: 35px;
+    width: 55px;
+}
+
+.rectangle-input input.mud-input-root-outlined, .square-input input.mud-input-root-outlined {
+    padding-top: 6px !important;
+    padding-bottom: 7px !important;
+}
+
+.rectangle-input input.mud-input-root-filled, .square-input input.mud-input-root-filled {
+    padding-top: 6px !important;
+    padding-bottom: 7px !important;
+}
+
+.rectangle-input input.mud-input-root {
+    padding-inline-start: 6px !important;
+}
+
+.auto-complete-input input.mud-input-root {
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+}
+
+.select-dense .mud-input-slot {
+    padding-top: 12px !important;
+    padding-bottom: 14px !important;
+}
+
+.select-dense.very-dense .mud-input-slot {
+    padding: 6px 3px 7px 6px !important;
+}
+
+.select-dense.very-dense .mud-input {
+    padding-right: 0 !important;
+}
+
+.mud-table-head .mud-table-row .mud-table-cell {
+    background-color: #303038 !important;
+}
+
+.mud-table-container-no-overflow-y > .mud-table-container {
+    overflow-y: hidden !important;
+}
+
+.dense-checkbox .mud-button-root {
+    padding: 4px;
+}
+
+.hack-validation .mud-input-control-helper-container {
+    position: absolute;
+    bottom: -25px;
+}
+
+.small-adornment .mud-input-adorned-end {
+    padding-right: 1px !important;
+}
+
+.small-adornment .mud-input-adornment-icon-button {
+    padding: 7px !important;
+    margin-right: -6px !important;
+}
+
+.small-adornment .mud-input-root-adorned-end {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.small-adornment .mud-icon-root {
+    font-size: 1.25rem !important;
+}
+
+.small-adornment.small-adornment-with-spin .mud-input-adornment-end {
+    margin-right: 16px !important;
+}
+
+.no-wrap-select .mud-input-slot {
+    white-space: wrap !important;
+}
+
+.comparison-by-select-container {
+    width: 220px;
+    flex: 0 0 220px;
+}
+
+@media (max-width: 600px) {
+    .comparison-by-select-container {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+}
+
+.recipe-table .mud-table-row > :first-child {
+    max-width: 0;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    position: relative;
+    left: 12px;
+}
+
+.border-l-1 {
+    border-left: 1px solid var(--mud-palette-table-lines) !important;
+}
+
+.border-r-1 {
+    border-right: 1px solid var(--mud-palette-table-lines) !important;
+}
+
+.release ul {
+    padding-left: 16px !important;
+    list-style: disc !important;
+}
+
+.margin-select-container .mud-select {
+    flex: 0;
+    background-color: #45454e !important;
+}
+
+.margin-select .mud-input {
+    padding-right: 0 !important;
+}
+
+.margin-select .mud-input-slot {
+    padding: 3px 3px 3px 6px !important;
+    width: 61px !important;
+}
+
+.margin-select .mud-input-outlined-border {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+.margin-price .mud-input-outlined-border {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-left-width: 0 !important;
+}
+
+.mud-list .mud-list-item.mud-list-item-dense {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+}
+
+.small-text-field .mud-input-slot {
+    padding-top: 4px !important;
+    padding-bottom: 5px !important;
+    font-size: .875rem !important;
+}
+
+.tooltip-text {
+    text-decoration: underline dotted 0.09rem;
+}
+
+.server-select .mud-input-label {
+    background-color: var(--mud-palette-appbar-background) !important;
+}
+
+.copy-server-select .mud-input-label {
+    background-color: var(--mud-palette-background) !important;
+}
+
+.max-price .mud-input-numeric-spin button:first-child{
+    visibility: hidden;
+}
+
+.min-price .mud-input-numeric-spin button:nth-child(2) {
+    visibility: hidden;
+}
+
+.app-bar .mud-toolbar {
+    padding-left: 4px;
+}
+
+.mud-list .mud-selected-item.mud-primary-text {
+    color: inherit!important;
+}
+
+.no-talent {
+    filter: grayscale(100%);
+}
+
+.no-talent:hover, .has-talent:hover {
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.55)!important;
+}
+
+.has-talent {
+    box-shadow: 0 0 6px rgba(255, 255, 0, 0.75) !important;
+}
+
+.talent-level-control {
+    width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.talent-level-action {
+    position: absolute;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    line-height: 1;
+    text-align: center;
+    border-radius: 4px;
+    user-select: none;
+    font-weight: 700;
+    cursor: pointer;
+    transform: translateX(-50%);
+    z-index: 2;
+    color: #4da6ff !important;
+}
+
+.talent-level-action-up {
+    top: 0;
+}
+
+.talent-level-action-down {
+    bottom: 0;
+}
+
+.talent-level-action.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+.talent-icon-wrapper {
+    position: relative;
+    width: 32px;
+    min-height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.talent-current-level {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    line-height: 1;
+    pointer-events: none;
+    font-weight: 800;
+    z-index: 2;
+    color: #ffffff;
+    text-shadow: 1px 0 0 #000,
+                 0 1px 0 #000,
+                 -1px 0 0 #000,
+                 0 -1px 0 #000;
+}
+
+.no-pluginmodule {
+    filter: grayscale(100%);
+}
+
+.no-pluginmodule:hover, .has-pluginmodule:hover {
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.55)!important;
+}
+
+.has-pluginmodule {
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.75) !important;
+}
+
+.grey-filter {
+    filter: grayscale(100%);
+}
+
+#custom-reconnect {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    background-color: #222;
+    color: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    z-index: 9999;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    font-weight: bold;
+}
+
+.text-shadow-black {
+    text-shadow: 1px 0 0 #000,
+                 0 1px 0 #000,
+                 -1px 0 0 #000,
+                 0 -1px 0 #000
+}
+
+.guided-choice-focus {
+    border: 1px solid rgba(255, 193, 7, 0.75);
+    border-radius: 8px;
+    padding: 2px 4px;
+    background-color: rgba(255, 193, 7, 0.12);
+    box-shadow: 0 0 0 1px rgba(255, 193, 7, 0.25);
+}
+
+.guided-choice-muted {
+    opacity: 0.45;
+    transition: opacity 0.15s ease;
+}
+
+.shopping-list-ingredient-scroll {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.shopping-list-tree {
+    overflow-x: hidden;
+}
+
+.shopping-list-tree .mud-treeview-item-label {
+    display: flex;
+    min-width: 0;
+}
+
+.shopping-list-tree .mud-treeview-item-label > * {
+    width: 100%;
+    min-width: 0;
+}
+
+.shopping-list-recipe-row {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    flex-wrap: nowrap;
+}
+
+.shopping-list-recipe-primary-product,
+.shopping-list-recipe-quantity {
+    flex: 0 0 auto;
+}
+
+.shopping-list-recipe-label {
+    flex: 0 1 190px;
+    min-width: 120px;
+    overflow: hidden;
+}
+
+.shopping-list-recipe-label .mud-typography {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.shopping-list-ingredient-row {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 4px;
+    width: 100%;
+    min-width: max-content;
+    box-sizing: border-box;
+}
+
+.shopping-list-choice-container {
+    flex: 0 0 auto;
+    min-width: max-content;
+}
+
+.shopping-list-choice-row {
+    flex-wrap: nowrap;
+    row-gap: 0;
+    flex: 0 0 auto;
+    width: max-content;
+}
+
+.shopping-list-choice-row > * {
+    flex: 0 0 auto;
+}
+
+.shopping-list-choice-row-pending {
+    max-width: none;
+}
+
+.guided-choice-scroll-anchor {
+    display: block;
+    width: 1px;
+    height: 1px;
+}
+
+.row-odd > td {
+    background-color: rgba(var(--mud-palette-primary-rgb, 33, 150, 243), 0.03);
+}
+
+.sell-row-family-member > td {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
+
+.sell-row-family-member:not(.sell-row-family-bottom) > td {
+    border-bottom: none !important;
+}
+
+.recipe-name-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+/* ===== Onboarding / prise en main ===== */
+/* Composant 1 — une carte d'étape numérotée au-dessus de chaque colonne */
+.onboarding-step-wrapper {
+    position: relative;
+    margin-bottom: 26px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.onboarding-step-card {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 78px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(var(--mud-palette-primary-rgb, 33, 150, 243), 0.05);
+    border: 1px solid rgba(var(--mud-palette-primary-rgb, 33, 150, 243), 0.20);
+}
+
+/* L'étape active (colonne des métiers) est mise en avant. */
+.onboarding-step-card--active {
+    background: linear-gradient(135deg,
+        rgba(var(--mud-palette-primary-rgb, 33, 150, 243), 0.16),
+        rgba(var(--mud-palette-primary-rgb, 33, 150, 243), 0.04));
+    border-color: rgba(var(--mud-palette-primary-rgb, 33, 150, 243), 0.45);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.onboarding-step-badge {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #fff;
+    background-color: var(--mud-palette-primary);
+}
+
+.onboarding-step-card:not(.onboarding-step-card--active) .onboarding-step-badge {
+    background-color: rgba(var(--mud-palette-primary-rgb, 33, 150, 243), 0.55);
+}
+
+.onboarding-step-body {
+    min-width: 0;
+}
+
+.onboarding-step-title {
+    color: var(--mud-palette-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.25;
+}
+
+.onboarding-step-desc {
+    color: var(--mud-palette-text-primary);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    opacity: 0.85;
+    margin-top: 3px;
+}
+
+.onboarding-arrow {
+    margin-top: 2px;
+    font-size: 2rem !important;
+    animation: onboarding-bob 1.3s ease-in-out infinite;
+}
+
+@keyframes onboarding-bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(5px); }
+}
+
+/* Composant 2 — pulse one-shot du bouton d'aide (3 pulses puis stop) */
+.onboarding-help-pulse {
+    border-radius: 50%;
+    animation: onboarding-pulse 1s ease-out 3;
+}
+
+@keyframes onboarding-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(var(--mud-palette-primary-rgb, 33, 150, 243), 0.7); }
+    70%  { box-shadow: 0 0 0 12px rgba(var(--mud-palette-primary-rgb, 33, 150, 243), 0); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--mud-palette-primary-rgb, 33, 150, 243), 0); }
+}
+
+/* Composant 2 — overlay « coach marks » au-dessus du site */
+.onboarding-overlay-root {
+    position: fixed;
+    inset: 0;
+    z-index: 2100;
+    outline: none;
+    cursor: pointer;
+    animation: onboarding-fade-in 0.18s ease-out;
+}
+
+.onboarding-overlay-svg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+/* Groupe anneau+bulle d'une cible : monté en permanence, on fond l'opacité au scroll. */
+.onboarding-target {
+    transition: opacity 0.18s ease;
+}
+
+.onboarding-target--hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.onboarding-spot-ring {
+    position: absolute;
+    border-radius: 10px;
+    pointer-events: none;
+    transition: left 0.12s linear, top 0.12s linear, width 0.12s linear, height 0.12s linear;
+}
+
+.onboarding-spot-ring.reveal {
+    border: 2px solid var(--mud-palette-primary);
+    box-shadow: 0 0 0 2px rgba(var(--mud-palette-primary-rgb, 33, 150, 243), 0.35),
+                0 0 18px rgba(var(--mud-palette-primary-rgb, 33, 150, 243), 0.55);
+}
+
+.onboarding-spot-ring.comfort {
+    border: 2px dashed rgba(255, 255, 255, 0.55);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+}
+
+.onboarding-callout {
+    position: absolute;
+    width: 240px;
+    box-sizing: border-box;
+    padding: 8px 11px;
+    border-radius: 8px;
+    background-color: var(--mud-palette-surface);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    color: var(--mud-palette-text-primary);
+    pointer-events: auto;
+    cursor: default;
+    transition: left 0.12s linear, top 0.12s linear;
+}
+
+.onboarding-callout .mud-typography {
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
+.onboarding-callout--vcenter {
+    transform: translateY(-50%);
+}
+
+.onboarding-callout.reveal {
+    border-left: 3px solid var(--mud-palette-primary);
+}
+
+.onboarding-callout.comfort {
+    border-left: 3px solid rgba(255, 255, 255, 0.55);
+}
+
+.onboarding-overlay-close {
+    position: absolute !important;
+    top: 16px;
+    right: 16px;
+    color: #fff !important;
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    pointer-events: auto;
+}
+
+.onboarding-overlay-hint {
+    position: fixed;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8rem;
+    pointer-events: none;
+}
+
+@keyframes onboarding-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+

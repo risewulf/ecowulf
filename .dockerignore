@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+**/out/
+**/.vs/
+**/.idea/
+**/.claude/
+**/node_modules/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.json.bk
+**/eco_gnome_data.json
+ecocraft/tmp/
+ecocraft/Exports/
+pgdata/
+docs/

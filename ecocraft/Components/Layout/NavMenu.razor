@@ -1,0 +1,72 @@
+﻿@implements IDisposable
+@using ecocraft.Services
+@inject ContextService ContextService
+@inject LocalizationService LocalizationService
+
+<MudNavMenu Style="display: flex; flex-direction: column; flex: 1 0 auto;">
+    <MudTooltip RootClass="mud-nav-item" Color="Color.Primary" Disabled="Opened" Placement="Placement.Right" Text="@LocalizationService.GetTranslation("NavMenu.NavCalculator")">
+        <MudNavLink Href="" Match="NavLinkMatch.All" IconColor="Color.Primary" Icon="@Icons.Material.Filled.Balance">@LocalizationService.GetTranslation("NavMenu.NavCalculator")</MudNavLink>
+    </MudTooltip>
+    <MudTooltip RootClass="mud-nav-item" Color="Color.Primary" Disabled="Opened" Placement="Placement.Right" Text="@LocalizationService.GetTranslation("NavMenu.ShoppingList")">
+        <MudNavLink IconColor="Color.Primary" Href="shopping-list" Match="NavLinkMatch.Prefix" Icon="@MDIIcons.Outline.Cart">@LocalizationService.GetTranslation("NavMenu.ShoppingList")</MudNavLink>
+    </MudTooltip>
+    @if (!IsLoadingUserAndServer && ContextService.CurrentServer is { IsDefault: false })
+    {
+        <MudTooltip RootClass="mud-nav-item" Color="Color.Primary" Disabled="Opened" Placement="Placement.Right" Text="@LocalizationService.GetTranslation("NavMenu.EconomyViewer")">
+            <MudNavLink IconColor="Color.Primary" Href="economy-viewer" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.QueryStats">@LocalizationService.GetTranslation("NavMenu.EconomyViewer")</MudNavLink>
+        </MudTooltip>
+    }
+
+    <!--<MudTooltip RootClass="mud-nav-item" Disabled="Opened" Placement="Placement.Right" Text="@LocalizationService.GetTranslation("NavMenu.NavGraph")">
+        <MudNavLink Href="graph-view" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.GraphicEq">@LocalizationService.GetTranslation("NavMenu.NavGraph")</MudNavLink>
+    </MudTooltip>-->
+
+    @if (!IsLoadingUserAndServer && (ContextService.CurrentUserServer?.IsAdmin ?? false))
+    {
+        <MudTooltip RootClass="mud-nav-item" Color="Color.Warning" Disabled="Opened" Placement="Placement.Right" Text="@LocalizationService.GetTranslation("NavMenu.NavAdmin")">
+            <MudNavLink IconColor="Color.Warning" Href="server-management" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.AdminPanelSettings">@LocalizationService.GetTranslation("NavMenu.NavAdmin")</MudNavLink>
+        </MudTooltip>
+        <MudTooltip RootClass="mud-nav-item" Color="Color.Warning" Disabled="Opened" Placement="Placement.Right" Text="@LocalizationService.GetTranslation("NavMenu.NavDataEditor")">
+            <MudNavLink IconColor="Color.Warning" Href="data-editor" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.EditNote">@LocalizationService.GetTranslation("NavMenu.NavDataEditor")</MudNavLink>
+        </MudTooltip>
+    }
+    @if (!IsLoadingUserAndServer && (ContextService.CurrentUser?.SuperAdmin ?? false))
+    {
+        <MudTooltip RootClass="mud-nav-item" Color="Color.Error" Disabled="Opened" Placement="Placement.Right" Text="@LocalizationService.GetTranslation("NavMenu.NavSuperAdmin")">
+            <MudNavLink IconColor="Color.Error" Href="super-admin" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Superscript">@LocalizationService.GetTranslation("NavMenu.NavSuperAdmin")</MudNavLink>
+        </MudTooltip>
+    }
+    <MudSpacer />
+    <MudTooltip RootClass="mud-nav-item" Color="Color.Default" Disabled="Opened" Placement="Placement.Right" Text="@LocalizationService.GetTranslation("NavMenu.SourceCode")">
+        <MudNavLink IconColor="Color.Default" Target="_blank" Href="https://github.com/Eco-Gnome/eco-gnome-website" Match="NavLinkMatch.Prefix" Icon="@MDIIcons.Filled.Github">@LocalizationService.GetTranslation("NavMenu.SourceCode")</MudNavLink>
+    </MudTooltip>
+    <MudTooltip RootClass="mud-nav-item" Color="Color.Default" Disabled="Opened" Placement="Placement.Right" Text="@LocalizationService.GetTranslation("NavMenu.Contact")">
+        <MudNavLink IconColor="Color.Default" Href="contact" Match="NavLinkMatch.Prefix" Icon="@MDIIcons.Filled.Contacts">@LocalizationService.GetTranslation("NavMenu.Contact")</MudNavLink>
+    </MudTooltip>
+    <MudTooltip RootClass="mud-nav-item" Color="Color.Default" Disabled="Opened" Placement="Placement.Right" Text="Confidentialité">
+        <MudNavLink IconColor="Color.Default" Href="privacy" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PrivacyTip">Confidentialité</MudNavLink>
+    </MudTooltip>
+    <MudTooltip RootClass="mud-nav-item" Color="Color.Default" Disabled="Opened" Placement="Placement.Right" Text="Conditions d'utilisation">
+        <MudNavLink IconColor="Color.Default" Href="terms" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Gavel">Conditions</MudNavLink>
+    </MudTooltip>
+    <MudTooltip RootClass="mud-nav-item" Color="Color.Default" Disabled="Opened" Placement="Placement.Right" Text="Mentions légales">
+        <MudNavLink IconColor="Color.Default" Href="legal" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Description">Mentions légales</MudNavLink>
+    </MudTooltip>
+</MudNavMenu>
+
+@code {
+    [Parameter]
+    public bool IsLoadingUserAndServer { get; set; }
+
+    [Parameter] public bool Opened { get; set; }
+
+    protected override void OnInitialized()
+    {
+        ContextService.OnContextChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        ContextService.OnContextChanged -= StateHasChanged;
+    }
+}

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="EcoWulf">
+  <defs>
+    <linearGradient id="ecowulfBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#43a047"/>
+      <stop offset="1" stop-color="#1b5e20"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="124" height="124" rx="30" fill="url(#ecowulfBg)"/>
+  <!-- leaf accent -->
+  <path d="M104 24 C88 26 82 40 92 52 C104 46 108 34 104 24 Z" fill="#a5d6a7" opacity="0.9"/>
+  <!-- wolf head -->
+  <polygon points="32,34 52,60 64,52 76,60 96,34 92,70 76,92 64,104 52,92 36,70"
+           fill="#f1f8e9"/>
+  <!-- inner ears -->
+  <polygon points="40,42 51,58 44,58" fill="#1b5e20"/>
+  <polygon points="88,42 77,58 84,58" fill="#1b5e20"/>
+  <!-- eyes -->
+  <polygon points="46,66 57,64 52,73" fill="#1b5e20"/>
+  <polygon points="82,66 71,64 76,73" fill="#1b5e20"/>
+  <!-- snout -->
+  <polygon points="57,88 71,88 64,103" fill="#1b5e20"/>
+  <circle cx="64" cy="90" r="3.4" fill="#1b5e20"/>
+</svg>

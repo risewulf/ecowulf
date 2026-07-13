@@ -1,0 +1,56 @@
+﻿@using ecocraft.Services
+
+<!DOCTYPE html>
+<html lang="fr">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<base href="/" />
+		<link href="/app.css?v=@ReleaseVersionService.ReleaseVersions.First().Title" rel="stylesheet">
+		<link href="/ecocraft.styles.css?v=@ReleaseVersionService.ReleaseVersions.First().Title" rel="stylesheet">
+		<script src="/js/file-download.js?v=@ReleaseVersionService.ReleaseVersions.First().Title"></script>
+		<script src="/js/scroll-helpers.js?v=@ReleaseVersionService.ReleaseVersions.First().Title"></script>
+		<script src="/js/onboarding-overlay.js?v=@ReleaseVersionService.ReleaseVersions.First().Title"></script>
+		<script src="/js/konami-code.js?v=@ReleaseVersionService.ReleaseVersions.First().Title"></script>
+		<script src="/lib/vis-network/vis-network.min.js?v=@ReleaseVersionService.ReleaseVersions.First().Title"></script>
+		<script src="/js/sugiyama.js?v=@ReleaseVersionService.ReleaseVersions.First().Title"></script>
+		<script src="/js/production-graph.js?v=@ReleaseVersionService.ReleaseVersions.First().Title"></script>
+
+		<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+		<link href="_content/MudBlazor/MudBlazor.min.css?v=@ReleaseVersionService.ReleaseVersions.First().Title" rel="stylesheet" />
+		<link href="_content/MudBlazor.Markdown/MudBlazor.Markdown.min.css?v=@ReleaseVersionService.ReleaseVersions.First().Title" rel="stylesheet" />
+
+		<link href="_content/Z.Blazor.Diagrams/style.min.css?v=@ReleaseVersionService.ReleaseVersions.First().Title" rel="stylesheet" />
+		<link href="_content/Z.Blazor.Diagrams/default.styles.min.css?v=@ReleaseVersionService.ReleaseVersions.First().Title" rel="stylesheet" />
+
+		<link rel="icon" type="image/svg+xml" href="/ecowulf-logo.svg" />
+		<link rel="icon" type="image/png" href="favicon.ico" />
+		<HeadOutlet @rendermode="@InteractiveServer" />
+
+		<meta name="title" content="EcoWulf : Calculateur de prix pour le jeu ECO">
+		<meta name="description" content="EcoWulf est un outil gratuit de calcul des prix pour les joueurs de ECO. Optimisez vos échanges et maximisez vos profits avec des calculs précis.">
+		<meta name="keywords" content="Eco jeu, calculateur de prix Eco, EcoWulf, économie Eco, prix ECO, jeu ECO, trading ECO, simulateur de prix ECO, optimisateur de prix Eco">
+		<meta name="robots" content="index, follow">
+		<meta name="author" content="EcoWulf">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://ecowulf.xyz">
+		<meta property="og:title" content="EcoWulf : Calculateur de prix pour le jeu ECO">
+		<meta property="og:description" content="Découvrez EcoWulf, l'outil idéal pour calculer et optimiser vos prix dans le jeu ECO. Améliorez vos échanges avec des prix ajustés.">
+		<meta property="og:image" content="https://ecowulf.xyz/ecowulf-logo.svg">
+
+		<meta name="twitter:card" content="summary_large_image">
+		<meta name="twitter:url" content="https://ecowulf.xyz">
+		<meta name="twitter:title" content="EcoWulf : Calculateur de prix pour le jeu ECO">
+		<meta name="twitter:description" content="Utilisez EcoWulf pour calculer les prix et optimiser votre économie dans le jeu ECO.">
+		<meta name="twitter:image" content="https://ecowulf.xyz/ecowulf-logo.svg">
+	</head>
+	<body>
+		<Routes @rendermode="@InteractiveServer" />
+		<script src="_content/MudBlazor/MudBlazor.min.js?v=@ReleaseVersionService.ReleaseVersions.First().Title"></script>
+		<script src="_content/MudBlazor.Markdown/MudBlazor.Markdown.min.js?v=@ReleaseVersionService.ReleaseVersions.First().Title"></script>
+		<script src="_content/Z.Blazor.Diagrams/script.min.js?v=@ReleaseVersionService.ReleaseVersions.First().Title"></script>
+		<script src="_framework/blazor.web.js"></script>
+	</body>
+</html>

@@ -1,0 +1,155 @@
+﻿@using ecocraft.Extensions
+@using ecocraft.Models
+@using ecocraft.Services
+@using ecocraft.Services.DbServices
+@using Microsoft.EntityFrameworkCore
+@inject LocalizationService LocalizationService
+@inject ServerDbService ServerDbService
+@inject ContextService ContextService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IDbContextFactory<EcoCraftDbContext> EcoCraftDbFactory
+
+<MudDialog>
+    <TitleContent>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="6" Class="pb-6">
+
+                <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center">
+                    <MudText Typo="Typo.h5" Class="mb-4">@LocalizationService.GetTranslation("ServerDialog.JoinServer")</MudText>
+
+                    <MudTextField @bind-Value="JoinCode"
+                                  Immediate="true"
+                                  Label="Join code"
+                                  Validation="@(new Func<string, IEnumerable<string>>(JoinCodeLength))"
+                                  Variant="Variant.Outlined"
+                                  OnKeyDown="OnKeyDownJoinAsync"/>
+                    <MudButton
+                        Disabled="@(JoinCode.Length < 8)"
+                        StartIcon="@MDIIcons.Outline.ArrowRightBoldBox"
+                        Color="Color.Primary"
+                        Variant="Variant.Filled"
+                        OnClick="OnJoinServer">
+                        @LocalizationService.GetTranslation("ServerDialog.Join")
+                    </MudButton>
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="6" Class="border-l-1 pb-6">
+                <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center">
+                    <MudText Typo="Typo.h5" Class="mb-4">@LocalizationService.GetTranslation("ServerDialog.CreateServer")</MudText>
+
+                    <MudTextField @bind-Value="ServerName"
+                                  Immediate="true"
+                                  Validation="@(new Func<string, IEnumerable<string>>(MinAndMaxCharacters))"
+                                  Variant="Variant.Outlined"
+                                  Label="Your server name"
+                                  OnKeyDown="OnKeyDownCreateAsync"/>
+                    <MudButton
+                        Disabled="@(ServerName.Length < 3)"
+                        StartIcon="@Icons.Material.Filled.AddBox"
+                        Color="Color.Primary"
+                        Variant="Variant.Filled"
+                        OnClick="OnCreateServer">
+                        @LocalizationService.GetTranslation("ServerDialog.Create")
+                    </MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string ServerName { get; set; } = "";
+    private string JoinCode { get; set; } = "";
+
+    private IEnumerable<string> MinAndMaxCharacters(string ch)
+    {
+        if (!string.IsNullOrEmpty(ch) && 25 < ch?.Length)
+            yield return LocalizationService.GetTranslation("ServerDialog.MaxChar");
+        if (!string.IsNullOrEmpty(ch) && 3 > ch?.Length)
+            yield return LocalizationService.GetTranslation("ServerDialog.MinChar");
+    }
+
+    private IEnumerable<string> JoinCodeLength(string ch)
+    {
+        if (!string.IsNullOrEmpty(ch) && ch?.Length != 8)
+            yield return LocalizationService.GetTranslation("ServerDialog.JoinCodeLength");
+    }
+
+
+    private async Task OnKeyDownCreateAsync(KeyboardEventArgs args)
+    {
+        switch (args.Key)
+        {
+            case "Enter":
+            case "NumpadEnter":
+                await OnCreateServer();
+                break;
+        }
+    }
+
+    private async Task OnKeyDownJoinAsync(KeyboardEventArgs args)
+    {
+        switch (args.Key)
+        {
+            case "Enter":
+            case "NumpadEnter":
+                await OnJoinServer();
+                break;
+        }
+    }
+
+    private async Task OnCreateServer()
+    {
+        if (ServerName.Length < 3)
+        {
+            return;
+        }
+
+        Server newServer = new Server { Name = ServerName, IsDefault = false, CreationDateTime = DateTimeOffset.UtcNow };
+        newServer.GenerateJoinCode();
+
+        await EcoCraftDbContext.ContextSaveAsync(EcoCraftDbFactory, context =>
+		{
+            ServerDbService.Create(context, newServer);
+            return Task.CompletedTask;
+		});
+
+        await ContextService.JoinServer(newServer, true);
+
+        await ContextService.ChangeServer(newServer);
+        Navigation.NavigateTo("/server-management");
+    }
+
+    private async Task OnJoinServer()
+    {
+        if (string.IsNullOrEmpty(JoinCode))
+        {
+            Snackbar.Add(LocalizationService.GetTranslation("Header.ServerDialog.Snackbar.JoinError"), Severity.Error);
+            return;
+        }
+
+        var server = await ServerDbService.GetByJoinCodeAsync(JoinCode);
+
+        if (server is null)
+        {
+            Snackbar.Add(LocalizationService.GetTranslation("Header.ServerDialog.Snackbar.ServerNotFound"), Severity.Error);
+            return;
+        }
+
+        if (ContextService.AvailableServers.Contains(server))
+        {
+            Snackbar.Add(LocalizationService.GetTranslation("Header.ServerDialog.Snackbar.AlreadyInServer"), Severity.Warning);
+            return;
+        }
+
+        await ContextService.JoinServer(server);
+        await ContextService.ChangeServer(server);
+        MudDialog.Close();
+    }
+}
