@@ -10,7 +10,7 @@
 @inject NavigationManager NavManager
 
 <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.FlexStart" Class="pl-3">
-    <MudImage Src="/ecowulf-logo.svg" Width="52"/>
+    <MudImage Src="/ecowulf-logo.svg" Width="64"/>
     <MudText Typo="Typo.h5">@LocalizationService.GetTranslation("Header.EcoGnome")</MudText>
     <MudLink Style="position: relative;" Color="Color.Tertiary" OnClick="() => OpenReleaseDialog()">
         <MudText Color="Color.Tertiary" Class="mt-2 ml-n1">@ReleaseVersionService.ReleaseVersions.First().Title</MudText>

@@ -9,7 +9,7 @@
   <polygon points="64,4 114,30 114,78 64,124 14,78 14,30" fill="url(#ecowulfBg)"/>
   <polygon points="64,4 114,30 114,78 64,124 14,78 14,30" fill="none" stroke="#a5d6a7" stroke-width="3.4"/>
   <!-- loup géométrique -->
-  <g transform="translate(64,60) scale(0.7) translate(-64,-69)">
+  <g transform="translate(64,61) scale(0.74) translate(-64,-69)">
     <polygon points="32,34 52,60 64,52 76,60 96,34 92,70 76,92 64,104 52,92 36,70" fill="#f1f8e9"/>
     <polygon points="40,42 51,58 44,58" fill="#1b5e20"/>
     <polygon points="88,42 77,58 84,58" fill="#1b5e20"/>
