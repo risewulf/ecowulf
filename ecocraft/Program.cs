@@ -119,6 +119,13 @@ builder.Services.AddAuthorization(config =>
 
 var app = builder.Build();
 
+// --- Turnstile (Cloudflare) bot-gate config ---
+// Activé uniquement si les deux clés sont fournies (via Turnstile__SiteKey / Turnstile__SecretKey).
+var tsSiteKey = app.Configuration["Turnstile:SiteKey"];
+var tsSecretKey = app.Configuration["Turnstile:SecretKey"];
+var tsEnabled = !string.IsNullOrWhiteSpace(tsSiteKey) && !string.IsNullOrWhiteSpace(tsSecretKey);
+var turnstileHttp = new HttpClient();
+
 var locOptions = app.Services.GetService<IOptions<RequestLocalizationOptions>>();
 app.UseRequestLocalization(locOptions!.Value);
 
@@ -128,6 +135,84 @@ await ApplyMigrationsWithRetryAsync(app.Services, app.Logger);
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
+}
+
+// --- Turnstile bot-gate : défi Cloudflare Turnstile à chaque nouvelle session ---
+if (tsEnabled)
+{
+    const string gateCookie = "ew_ts";
+    app.Use(async (context, next) =>
+    {
+        var reqPath = context.Request.Path.Value ?? "/";
+
+        // Laisser passer les challenges ACME (renouvellement du certificat), au cas où.
+        if (reqPath.StartsWith("/.well-known/", StringComparison.Ordinal))
+        {
+            await next();
+            return;
+        }
+
+        // Endpoint de vérification du jeton (appelé par la page de défi)
+        if (reqPath == "/_gate/verify" && HttpMethods.IsPost(context.Request.Method))
+        {
+            var form = await context.Request.ReadFormAsync();
+            var token = form["cf-turnstile-response"].ToString();
+            var ip = context.Connection.RemoteIpAddress?.ToString() ?? "";
+            var ok = false;
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                try
+                {
+                    using var vr = await turnstileHttp.PostAsync(
+                        "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+                        new FormUrlEncodedContent(new Dictionary<string, string>
+                        {
+                            ["secret"] = tsSecretKey!,
+                            ["response"] = token,
+                            ["remoteip"] = ip
+                        }));
+                    var vbody = await vr.Content.ReadAsStringAsync();
+                    ok = vbody.Contains("\"success\":true") || vbody.Contains("\"success\": true");
+                }
+                catch
+                {
+                    ok = false;
+                }
+            }
+
+            if (ok)
+            {
+                context.Response.Cookies.Append(gateCookie, "1", new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    IsEssential = true
+                    // Pas d'expiration => cookie de session (redemandé à chaque nouvelle session).
+                });
+                context.Response.StatusCode = StatusCodes.Status204NoContent;
+            }
+            else
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            }
+
+            return;
+        }
+
+        // Session déjà vérifiée => on laisse passer.
+        if (context.Request.Cookies.ContainsKey(gateCookie))
+        {
+            await next();
+            return;
+        }
+
+        // Sinon, on sert la page de défi pour toute requête.
+        context.Response.StatusCode = StatusCodes.Status200OK;
+        context.Response.ContentType = "text/html; charset=utf-8";
+        await context.Response.WriteAsync(TurnstileGateHtml(tsSiteKey!));
+    });
 }
 
 app.Use(async (context, next) =>
@@ -186,6 +271,59 @@ app.MapRazorComponents<App>()
 StaticEnvironmentAccessor.WebHostEnvironment = app.Services.GetRequiredService<IWebHostEnvironment>();
 
 app.Run();
+
+static string TurnstileGateHtml(string siteKey)
+{
+    const string html = """
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcoWulf — vérification</title>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+         font-family: system-ui, -apple-system, sans-serif; background:#14351b; color:#e8f5e9; }
+  .card { background:#1b5e20; border:1px solid #2e7d32; border-radius:16px; padding:32px 28px;
+          max-width:360px; width:90%; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.4); }
+  .logo { width:72px; height:72px; margin:0 auto 12px; display:block; }
+  h1 { margin:0 0 4px; font-size:1.5rem; }
+  p { margin:0 0 20px; color:#a5d6a7; font-size:.95rem; }
+  .cf { display:flex; justify-content:center; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <svg class="logo" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" aria-label="EcoWulf">
+      <rect x="2" y="2" width="124" height="124" rx="30" fill="#43a047"/>
+      <polygon points="32,34 52,60 64,52 76,60 96,34 92,70 76,92 64,104 52,92 36,70" fill="#f1f8e9"/>
+      <polygon points="46,66 57,64 52,73" fill="#1b5e20"/>
+      <polygon points="82,66 71,64 76,73" fill="#1b5e20"/>
+      <polygon points="57,88 71,88 64,103" fill="#1b5e20"/>
+    </svg>
+    <h1>EcoWulf</h1>
+    <p>Petite vérification pour prouver que tu n'es pas un robot.</p>
+    <div class="cf"><div class="cf-turnstile" data-sitekey="__SITEKEY__" data-callback="onOk" data-theme="dark"></div></div>
+  </div>
+  <script>
+    function onOk(token){
+      fetch('/_gate/verify', {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:'cf-turnstile-response=' + encodeURIComponent(token)
+      }).then(function(r){
+        if (r.ok || r.status === 204) { location.reload(); }
+        else { alert('Échec de la vérification, réessaie.'); if (window.turnstile) turnstile.reset(); }
+      }).catch(function(){ alert('Erreur réseau, réessaie.'); });
+    }
+  </script>
+</body>
+</html>
+""";
+    return html.Replace("__SITEKEY__", siteKey);
+}
 
 static async Task ApplyMigrationsWithRetryAsync(IServiceProvider services, ILogger logger)
 {
