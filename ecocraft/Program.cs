@@ -145,8 +145,11 @@ if (tsEnabled)
     {
         var reqPath = context.Request.Path.Value ?? "/";
 
-        // Laisser passer les challenges ACME (renouvellement du certificat), au cas où.
-        if (reqPath.StartsWith("/.well-known/", StringComparison.Ordinal))
+        // Laisser passer les appels API du mod (machine-à-machine, authentifiés par join code /
+        // api key, sans cookie navigateur) et les challenges ACME. Sinon la gate casserait
+        // l'enregistrement du serveur et la synchro des prix depuis Eco.
+        if (reqPath.StartsWith("/api/", StringComparison.Ordinal) ||
+            reqPath.StartsWith("/.well-known/", StringComparison.Ordinal))
         {
             await next();
             return;
