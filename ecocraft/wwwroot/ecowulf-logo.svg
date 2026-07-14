@@ -5,19 +5,20 @@
       <stop offset="1" stop-color="#1b5e20"/>
     </linearGradient>
   </defs>
-  <rect x="2" y="2" width="124" height="124" rx="30" fill="url(#ecowulfBg)"/>
-  <!-- leaf accent -->
-  <path d="M104 24 C88 26 82 40 92 52 C104 46 108 34 104 24 Z" fill="#a5d6a7" opacity="0.9"/>
-  <!-- wolf head -->
-  <polygon points="32,34 52,60 64,52 76,60 96,34 92,70 76,92 64,104 52,92 36,70"
-           fill="#f1f8e9"/>
-  <!-- inner ears -->
-  <polygon points="40,42 51,58 44,58" fill="#1b5e20"/>
-  <polygon points="88,42 77,58 84,58" fill="#1b5e20"/>
-  <!-- eyes -->
-  <polygon points="46,66 57,64 52,73" fill="#1b5e20"/>
-  <polygon points="82,66 71,64 76,73" fill="#1b5e20"/>
-  <!-- snout -->
-  <polygon points="57,88 71,88 64,103" fill="#1b5e20"/>
-  <circle cx="64" cy="90" r="3.4" fill="#1b5e20"/>
+  <!-- écusson hexagonal -->
+  <polygon points="64,4 114,30 114,78 64,124 14,78 14,30" fill="url(#ecowulfBg)"/>
+  <polygon points="64,4 114,30 114,78 64,124 14,78 14,30" fill="none" stroke="#a5d6a7" stroke-width="3.4"/>
+  <!-- loup géométrique -->
+  <g transform="translate(64,60) scale(0.7) translate(-64,-69)">
+    <polygon points="32,34 52,60 64,52 76,60 96,34 92,70 76,92 64,104 52,92 36,70" fill="#f1f8e9"/>
+    <polygon points="40,42 51,58 44,58" fill="#1b5e20"/>
+    <polygon points="88,42 77,58 84,58" fill="#1b5e20"/>
+    <polygon points="46,66 57,64 52,73" fill="#1b5e20"/>
+    <polygon points="82,66 71,64 76,73" fill="#1b5e20"/>
+    <polygon points="57,88 71,88 64,103" fill="#1b5e20"/>
+    <circle cx="64" cy="90" r="3.4" fill="#1b5e20"/>
+  </g>
+  <!-- feuille (coin haut-droit, à l'intérieur de l'écusson) -->
+  <path d="M99 25 C86 27 81 38 89 48 C100 43 103 33 99 25 Z" fill="#a5d6a7"/>
+  <path d="M91 46 L97 29" stroke="#1b5e20" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".5"/>
 </svg>

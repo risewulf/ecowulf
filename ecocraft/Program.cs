@@ -300,11 +300,15 @@ static string TurnstileGateHtml(string siteKey)
 <body>
   <div class="card">
     <svg class="logo" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" aria-label="EcoWulf">
-      <rect x="2" y="2" width="124" height="124" rx="30" fill="#43a047"/>
-      <polygon points="32,34 52,60 64,52 76,60 96,34 92,70 76,92 64,104 52,92 36,70" fill="#f1f8e9"/>
-      <polygon points="46,66 57,64 52,73" fill="#1b5e20"/>
-      <polygon points="82,66 71,64 76,73" fill="#1b5e20"/>
-      <polygon points="57,88 71,88 64,103" fill="#1b5e20"/>
+      <polygon points="64,4 114,30 114,78 64,124 14,78 14,30" fill="#43a047"/>
+      <polygon points="64,4 114,30 114,78 64,124 14,78 14,30" fill="none" stroke="#a5d6a7" stroke-width="3.4"/>
+      <g transform="translate(64,60) scale(0.7) translate(-64,-69)">
+        <polygon points="32,34 52,60 64,52 76,60 96,34 92,70 76,92 64,104 52,92 36,70" fill="#f1f8e9"/>
+        <polygon points="46,66 57,64 52,73" fill="#1b5e20"/>
+        <polygon points="82,66 71,64 76,73" fill="#1b5e20"/>
+        <polygon points="57,88 71,88 64,103" fill="#1b5e20"/>
+      </g>
+      <path d="M99 25 C86 27 81 38 89 48 C100 43 103 33 99 25 Z" fill="#a5d6a7"/>
     </svg>
     <h1>EcoWulf</h1>
     <p>Petite vérification pour prouver que tu n'es pas un robot.</p>
